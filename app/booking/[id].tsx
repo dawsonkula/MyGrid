@@ -6,6 +6,7 @@ import {
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getQueryFn, apiRequest, queryClient } from '@/lib/query-client';
 import { useAuth } from '@/lib/auth-context';
@@ -14,17 +15,17 @@ import { fonts, spacing, radius, webTopInset, webBottomInset } from '@/constants
 
 const PLATFORM_FEE_LABEL = 'MyGrid fee (10%)';
 
-const STATUS_META: Record<string, { label: string; bg: string; color: string }> = {
-  requested:          { label: 'Pending', bg: Colors.dark.warningMuted, color: Colors.dark.warning },
-  accepted:           { label: 'Accepted', bg: Colors.dark.successMuted, color: Colors.dark.success },
-  payment_pending:    { label: 'Payment Pending', bg: Colors.dark.warningMuted, color: Colors.dark.warning },
-  paid:               { label: 'Paid', bg: Colors.dark.successMuted, color: Colors.dark.success },
-  in_progress:        { label: 'In Progress', bg: Colors.dark.accentMuted, color: Colors.dark.accent },
-  footage_delivered:  { label: 'Footage Delivered', bg: Colors.dark.accentMuted, color: Colors.dark.accent },
-  completed:          { label: 'Completed', bg: Colors.dark.successMuted, color: Colors.dark.success },
-  declined:           { label: 'Declined', bg: Colors.dark.errorMuted, color: Colors.dark.error },
-  cancelled:          { label: 'Cancelled', bg: Colors.dark.errorMuted, color: Colors.dark.error },
-  disputed:           { label: 'Disputed', bg: Colors.dark.errorMuted, color: Colors.dark.error },
+const STATUS_META: Record<string, { label: string; bg: string; color: string; icon: string; gradientColors: [string, string] }> = {
+  requested:         { label: 'Pending Review', bg: Colors.dark.warningMuted, color: Colors.dark.warning, icon: 'time-outline', gradientColors: ['rgba(240,160,48,0.12)', 'rgba(240,160,48,0.04)'] },
+  accepted:          { label: 'Accepted', bg: Colors.dark.successMuted, color: Colors.dark.success, icon: 'checkmark-circle-outline', gradientColors: ['rgba(94,236,192,0.12)', 'rgba(94,236,192,0.04)'] },
+  payment_pending:   { label: 'Payment Pending', bg: Colors.dark.warningMuted, color: Colors.dark.warning, icon: 'card-outline', gradientColors: ['rgba(240,160,48,0.12)', 'rgba(240,160,48,0.04)'] },
+  paid:              { label: 'Paid', bg: Colors.dark.successMuted, color: Colors.dark.success, icon: 'checkmark-done-outline', gradientColors: ['rgba(94,236,192,0.12)', 'rgba(94,236,192,0.04)'] },
+  in_progress:       { label: 'In Progress', bg: Colors.dark.accentMuted, color: Colors.dark.accent, icon: 'camera-outline', gradientColors: ['rgba(176,130,255,0.12)', 'rgba(176,130,255,0.04)'] },
+  footage_delivered: { label: 'Footage Delivered', bg: Colors.dark.accentMuted, color: Colors.dark.accent, icon: 'film-outline', gradientColors: ['rgba(176,130,255,0.12)', 'rgba(176,130,255,0.04)'] },
+  completed:         { label: 'Completed', bg: Colors.dark.successMuted, color: Colors.dark.success, icon: 'ribbon-outline', gradientColors: ['rgba(94,236,192,0.12)', 'rgba(94,236,192,0.04)'] },
+  declined:          { label: 'Declined', bg: Colors.dark.errorMuted, color: Colors.dark.error, icon: 'close-circle-outline', gradientColors: ['rgba(240,80,80,0.12)', 'rgba(240,80,80,0.04)'] },
+  cancelled:         { label: 'Cancelled', bg: Colors.dark.errorMuted, color: Colors.dark.error, icon: 'ban-outline', gradientColors: ['rgba(240,80,80,0.12)', 'rgba(240,80,80,0.04)'] },
+  disputed:          { label: 'Disputed', bg: Colors.dark.errorMuted, color: Colors.dark.error, icon: 'alert-circle-outline', gradientColors: ['rgba(240,80,80,0.12)', 'rgba(240,80,80,0.04)'] },
 };
 
 const DELIVERY_TYPE_LABELS: Record<string, string> = {
@@ -118,7 +119,6 @@ export default function BookingDetailScreen() {
           text: 'Approve',
           onPress: async () => {
             try {
-              // Server auto-completes the booking when a delivery is approved
               await apiRequest('PUT', `/api/deliveries/${deliveryId}/status`, { status: 'approved' });
               queryClient.invalidateQueries({ queryKey: [`/api/bookings/${id}/deliveries`] });
               queryClient.invalidateQueries({ queryKey: ['/api/bookings', id] });
@@ -158,7 +158,6 @@ export default function BookingDetailScreen() {
       const data = await apiRequest('POST', `/api/bookings/${id}/create-checkout-session`, {});
       if (data?.url) {
         await Linking.openURL(data.url);
-        // Refresh after returning
         queryClient.invalidateQueries({ queryKey: ['/api/bookings', id] });
       } else {
         Alert.alert('Error', 'Could not create payment session. Please try again.');
@@ -175,6 +174,11 @@ export default function BookingDetailScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, { paddingTop: topPadding }]}>
+        <View style={[styles.header, { paddingTop: topPadding + spacing.sm }]}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={24} color={Colors.dark.text} />
+          </Pressable>
+        </View>
         <ActivityIndicator color={Colors.dark.primary} style={{ marginTop: 60 }} />
       </View>
     );
@@ -203,260 +207,310 @@ export default function BookingDetailScreen() {
   const packagePrice = booking.packagePrice ? parseFloat(booking.packagePrice) : null;
   const platformFee = booking.platformFeeAmount ? parseFloat(booking.platformFeeAmount) : null;
   const creatorPayout = booking.creatorPayoutAmount ? parseFloat(booking.creatorPayoutAmount) : null;
-
   const hasPaymentSummary = packagePrice !== null && packagePrice > 0;
 
   const dateStart = booking.event?.dateStart ? new Date(booking.event.dateStart) : null;
 
   const canCreatorAct = isCreator;
   const canDriverCancel = isDriver && booking.status === 'requested';
-
   const deliveryableStatuses = ['accepted', 'payment_pending', 'paid', 'in_progress', 'footage_delivered'];
   const canAddDelivery = isCreator && deliveryableStatuses.includes(booking.status);
 
   return (
     <View style={styles.container}>
+      {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: topPadding + spacing.sm }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={Colors.dark.text} />
+          <Ionicons name="chevron-back" size={22} color={Colors.dark.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>Booking Details</Text>
-        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitle}>Booking</Text>
+        <Pressable
+          onPress={() => router.push(`/chat/${otherUser?.id}`)}
+          style={styles.chatBtn}
+        >
+          <Ionicons name="chatbubble-outline" size={20} color={Colors.dark.primary} />
+        </Pressable>
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Status Badge */}
-        <View style={[styles.statusBanner, { backgroundColor: statusMeta.bg }]}>
-          <Text style={[styles.statusBannerText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
-        </View>
-
-        {/* ── Booking Summary ─────────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Booking Summary</Text>
-
-          <View style={styles.summaryRow}>
-            <Ionicons name="flag-outline" size={16} color={Colors.dark.primary} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.summaryLabel}>Event</Text>
-              <Text style={styles.summaryValue} numberOfLines={2}>{booking.event?.name}</Text>
-            </View>
+        {/* ── Status Hero ── */}
+        <LinearGradient
+          colors={statusMeta.gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.statusHero}
+        >
+          <View style={[styles.statusIconWrap, { backgroundColor: statusMeta.bg }]}>
+            <Ionicons name={statusMeta.icon as any} size={26} color={statusMeta.color} />
           </View>
-
+          <Text style={[styles.statusLabel, { color: statusMeta.color }]}>{statusMeta.label}</Text>
+          {booking.event?.name && (
+            <Text style={styles.statusEventName} numberOfLines={2}>{booking.event.name}</Text>
+          )}
           {dateStart && (
-            <View style={styles.summaryRow}>
-              <Ionicons name="calendar-outline" size={16} color={Colors.dark.primary} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.summaryLabel}>Date</Text>
-                <Text style={styles.summaryValue}>
-                  {dateStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </Text>
-              </View>
+            <View style={styles.statusDateRow}>
+              <Ionicons name="calendar-outline" size={13} color={Colors.dark.textMuted} />
+              <Text style={styles.statusDate}>
+                {dateStart.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+              </Text>
             </View>
           )}
+        </LinearGradient>
 
-          <View style={styles.summaryRow}>
-            <Ionicons name={isCreator ? 'car-sport-outline' : 'camera-outline'} size={16} color={Colors.dark.primary} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.summaryLabel}>{isCreator ? 'Driver' : 'Creator'}</Text>
-              <Pressable onPress={() => router.push(`/profile/${otherUser?.id}`)}>
-                <Text style={[styles.summaryValue, styles.linkText]}>{otherUser?.displayName}</Text>
-              </Pressable>
+        {/* ── People Card ── */}
+        <View style={styles.peopleCard}>
+          <PeopleAvatar
+            name={booking.driver?.displayName || 'Driver'}
+            role="Driver"
+            roleColor={Colors.dark.primary}
+            onPress={() => router.push(`/profile/${booking.driver?.id}`)}
+          />
+          <View style={styles.peopleDivider}>
+            <View style={styles.peopleDividerLine} />
+            <View style={styles.peopleDividerIcon}>
+              <Ionicons name="camera" size={14} color={Colors.dark.primary} />
             </View>
+            <View style={styles.peopleDividerLine} />
           </View>
-
-          {booking.pkg && (
-            <View style={styles.summaryRow}>
-              <Ionicons name="pricetag-outline" size={16} color={Colors.dark.primary} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.summaryLabel}>Package</Text>
-                <Text style={styles.summaryValue}>{booking.pkg.title}</Text>
-              </View>
-            </View>
-          )}
-
-          {booking.notes ? (
-            <View style={styles.summaryRow}>
-              <Ionicons name="document-text-outline" size={16} color={Colors.dark.primary} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.summaryLabel}>Notes</Text>
-                <Text style={styles.summaryValue}>{booking.notes}</Text>
-              </View>
-            </View>
-          ) : null}
+          <PeopleAvatar
+            name={booking.creator?.displayName || 'Creator'}
+            role="Creator"
+            roleColor={Colors.dark.accent}
+            onPress={() => router.push(`/profile/${booking.creator?.id}`)}
+          />
         </View>
 
-        {/* ── Payment Clarity ─────────────────────────────────────────────────── */}
+        {/* ── Package Card ── */}
+        {booking.pkg && (
+          <View style={styles.card}>
+            <View style={styles.cardLabelRow}>
+              <Ionicons name="pricetag-outline" size={14} color={Colors.dark.primary} />
+              <Text style={styles.cardLabel}>Package</Text>
+            </View>
+            <Text style={styles.packageName}>{booking.pkg.title}</Text>
+            {booking.pkg.description && (
+              <Text style={styles.packageDesc}>{booking.pkg.description}</Text>
+            )}
+            {booking.notes && (
+              <View style={styles.notesBox}>
+                <Text style={styles.notesLabel}>Driver notes</Text>
+                <Text style={styles.notesText}>{booking.notes}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* ── Payment Clarity Banner ── */}
         {booking.status === 'requested' && isDriver && (
-          <View style={styles.paymentClarityBanner}>
+          <View style={styles.clarityBanner}>
             <Ionicons name="shield-checkmark-outline" size={18} color={Colors.dark.success} />
-            <Text style={styles.paymentClarityText}>
-              You will not be charged until the creator accepts your request.
+            <Text style={styles.clarityText}>
+              You won't be charged until the creator accepts your request.
             </Text>
           </View>
         )}
 
-        {/* ── Payment Summary ──────────────────────────────────────────────────── */}
+        {/* ── Payment Summary ── */}
         {hasPaymentSummary && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Payment Summary</Text>
-            <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Package price</Text>
-              <Text style={styles.paymentValue}>${packagePrice!.toFixed(2)}</Text>
+          <View style={styles.card}>
+            <View style={styles.cardLabelRow}>
+              <Ionicons name="receipt-outline" size={14} color={Colors.dark.primary} />
+              <Text style={styles.cardLabel}>Payment Summary</Text>
+            </View>
+            <View style={styles.receiptRow}>
+              <Text style={styles.receiptLabel}>Package price</Text>
+              <Text style={styles.receiptValue}>${packagePrice!.toFixed(2)}</Text>
             </View>
             {platformFee !== null && (
-              <View style={styles.paymentRow}>
-                <Text style={styles.paymentLabel}>{PLATFORM_FEE_LABEL}</Text>
-                <Text style={[styles.paymentValue, { color: Colors.dark.textMuted }]}>-${platformFee.toFixed(2)}</Text>
+              <View style={styles.receiptRow}>
+                <Text style={styles.receiptLabel}>{PLATFORM_FEE_LABEL}</Text>
+                <Text style={[styles.receiptValue, { color: Colors.dark.textMuted }]}>
+                  −${platformFee.toFixed(2)}
+                </Text>
               </View>
             )}
-            <View style={styles.paymentDivider} />
+            <View style={styles.receiptDivider} />
             {creatorPayout !== null && (
-              <View style={styles.paymentRow}>
-                <Text style={[styles.paymentLabel, { fontFamily: fonts.semiBold, color: Colors.dark.text }]}>Creator receives</Text>
-                <Text style={[styles.paymentValue, { fontFamily: fonts.bold, color: Colors.dark.success }]}>${creatorPayout.toFixed(2)}</Text>
+              <View style={styles.receiptRow}>
+                <Text style={[styles.receiptLabel, { fontFamily: fonts.semiBold, color: Colors.dark.text }]}>
+                  Creator receives
+                </Text>
+                <Text style={[styles.receiptTotal, { color: Colors.dark.success }]}>
+                  ${creatorPayout.toFixed(2)}
+                </Text>
               </View>
             )}
             {['requested', 'accepted', 'payment_pending'].includes(booking.status) && (
-              <View style={styles.paymentPendingNote}>
-                <Ionicons name="time-outline" size={14} color={Colors.dark.warning} />
-                <Text style={styles.paymentPendingNoteText}>Payment is required after the booking is accepted.</Text>
+              <View style={styles.pendingPaymentNote}>
+                <Ionicons name="time-outline" size={13} color={Colors.dark.warning} />
+                <Text style={styles.pendingPaymentText}>
+                  Payment required after booking is accepted.
+                </Text>
               </View>
             )}
           </View>
         )}
 
-        {/* ── Delivery Section ─────────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Deliveries</Text>
+        {/* ── Deliveries ── */}
+        <View style={styles.card}>
+          <View style={styles.deliveriesHeader}>
+            <View style={styles.cardLabelRow}>
+              <Ionicons name="cloud-upload-outline" size={14} color={Colors.dark.primary} />
+              <Text style={styles.cardLabel}>Deliveries</Text>
+            </View>
             {canAddDelivery && (
-              <Pressable
-                onPress={() => setShowDeliveryModal(true)}
-                style={styles.addDeliveryBtn}
-              >
-                <Ionicons name="add" size={18} color={Colors.dark.primary} />
-                <Text style={styles.addDeliveryText}>Add</Text>
+              <Pressable onPress={() => setShowDeliveryModal(true)} style={styles.addBtn}>
+                <Ionicons name="add" size={16} color={Colors.dark.primary} />
+                <Text style={styles.addBtnText}>Add</Text>
               </Pressable>
             )}
           </View>
 
           {deliveries.length === 0 ? (
-            <Text style={styles.emptyDelivery}>
-              {canAddDelivery
-                ? 'Add a delivery link or file to share your work with the driver.'
-                : 'No deliveries yet.'}
-            </Text>
+            <View style={styles.emptyDeliveries}>
+              <Ionicons name="film-outline" size={24} color={Colors.dark.textMuted} />
+              <Text style={styles.emptyDeliveriesText}>
+                {canAddDelivery
+                  ? 'Share your work — add a delivery link or file.'
+                  : 'No deliveries yet.'}
+              </Text>
+            </View>
           ) : (
-            deliveries.map((d: any) => (
-              <DeliveryItem
-                key={d.id}
-                delivery={d}
-                isDriver={isDriver}
-                onApprove={() => handleApproveDelivery(d.id)}
-                onRequestRevision={() => {
-                  setSelectedDeliveryId(d.id);
-                  setShowRevisionModal(true);
-                }}
-              />
-            ))
+            <View style={{ gap: spacing.sm }}>
+              {deliveries.map((d: any) => (
+                <DeliveryItem
+                  key={d.id}
+                  delivery={d}
+                  isDriver={isDriver}
+                  onApprove={() => handleApproveDelivery(d.id)}
+                  onRequestRevision={() => {
+                    setSelectedDeliveryId(d.id);
+                    setShowRevisionModal(true);
+                  }}
+                />
+              ))}
+            </View>
           )}
         </View>
 
-        {/* ── Message & Status Actions ──────────────────────────────────────────── */}
+        {/* ── Primary Actions ── */}
         <View style={styles.actionsSection}>
-          {/* Message button */}
-          <Pressable
-            onPress={() => router.push(`/chat/${otherUser?.id}`)}
-            style={styles.messageBtn}
-          >
-            <Ionicons name="chatbubble-outline" size={18} color={Colors.dark.textSecondary} />
-            <Text style={styles.messageBtnText}>Message {isCreator ? 'Driver' : 'Creator'}</Text>
-          </Pressable>
-
-          {/* Creator actions */}
+          {/* Creator: Accept / Decline */}
           {canCreatorAct && booking.status === 'requested' && (
-            <View style={styles.actionRow}>
+            <View style={styles.actionPair}>
               <Pressable
                 onPress={() => statusMutation.mutate('accepted')}
-                style={[styles.actionBtn, styles.acceptBtn]}
+                style={[styles.actionPairBtn, styles.acceptBtn]}
                 disabled={statusMutation.isPending}
               >
-                <Ionicons name="checkmark" size={18} color={Colors.dark.success} />
-                <Text style={[styles.actionBtnText, { color: Colors.dark.success }]}>Accept</Text>
+                {statusMutation.isPending ? (
+                  <ActivityIndicator size="small" color={Colors.dark.success} />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={20} color={Colors.dark.success} />
+                    <Text style={[styles.actionPairBtnText, { color: Colors.dark.success }]}>Accept</Text>
+                  </>
+                )}
               </Pressable>
               <Pressable
                 onPress={() => statusMutation.mutate('declined')}
-                style={[styles.actionBtn, styles.declineBtn]}
+                style={[styles.actionPairBtn, styles.declineBtn]}
                 disabled={statusMutation.isPending}
               >
-                <Ionicons name="close" size={18} color={Colors.dark.error} />
-                <Text style={[styles.actionBtnText, { color: Colors.dark.error }]}>Decline</Text>
+                <Ionicons name="close-circle" size={20} color={Colors.dark.error} />
+                <Text style={[styles.actionPairBtnText, { color: Colors.dark.error }]}>Decline</Text>
               </Pressable>
             </View>
           )}
-          {/* Driver: Pay Now button — accepted or payment_pending */}
+
+          {/* Driver: Pay Now */}
           {isDriver && ['accepted', 'payment_pending'].includes(booking.status) && (
             <Pressable
               onPress={handlePayNow}
-              style={[styles.fullActionBtn, { backgroundColor: Colors.dark.primary }]}
+              style={styles.primaryBtn}
               disabled={payNowLoading}
             >
-              {payNowLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="card-outline" size={18} color="#fff" />
-                  <Text style={[styles.actionBtnText, { color: '#fff', fontFamily: fonts.bold }]}>Pay Now</Text>
-                </>
-              )}
+              <LinearGradient
+                colors={[Colors.dark.primary, Colors.dark.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.primaryBtnGradient}
+              >
+                {payNowLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="card" size={20} color="#fff" />
+                    <Text style={styles.primaryBtnText}>Pay Now</Text>
+                  </>
+                )}
+              </LinearGradient>
             </Pressable>
           )}
 
-          {/* Creator: waiting for payment nudge */}
+          {/* Creator: Waiting for payment */}
           {isCreator && ['accepted', 'payment_pending'].includes(booking.status) && (
-            <View style={[styles.fullActionBtn, { backgroundColor: Colors.dark.warningMuted, opacity: 0.9 }]}>
+            <View style={styles.waitingBanner}>
               <Ionicons name="hourglass-outline" size={18} color={Colors.dark.warning} />
-              <Text style={[styles.actionBtnText, { color: Colors.dark.warning }]}>Waiting for driver payment</Text>
+              <Text style={styles.waitingText}>Waiting for driver payment</Text>
             </View>
           )}
+
+          {/* Creator: Mark footage delivered */}
           {canCreatorAct && booking.status === 'in_progress' && (
             <Pressable
               onPress={() => statusMutation.mutate('footage_delivered')}
-              style={[styles.fullActionBtn, { backgroundColor: Colors.dark.accentMuted }]}
+              style={[styles.secondaryBtn, { backgroundColor: Colors.dark.accentMuted }]}
               disabled={statusMutation.isPending}
             >
               <Ionicons name="cloud-upload-outline" size={18} color={Colors.dark.accent} />
-              <Text style={[styles.actionBtnText, { color: Colors.dark.accent }]}>Mark Footage Delivered</Text>
-            </Pressable>
-          )}
-          {canCreatorAct && booking.status === 'footage_delivered' && (
-            <Pressable
-              onPress={() => statusMutation.mutate('completed')}
-              style={[styles.fullActionBtn, { backgroundColor: Colors.dark.successMuted }]}
-              disabled={statusMutation.isPending}
-            >
-              <Ionicons name="checkmark-done" size={18} color={Colors.dark.success} />
-              <Text style={[styles.actionBtnText, { color: Colors.dark.success }]}>Mark Completed</Text>
+              <Text style={[styles.secondaryBtnText, { color: Colors.dark.accent }]}>
+                Mark Footage Delivered
+              </Text>
             </Pressable>
           )}
 
-          {/* Driver actions */}
+          {/* Creator: Mark completed */}
+          {canCreatorAct && booking.status === 'footage_delivered' && (
+            <Pressable
+              onPress={() => statusMutation.mutate('completed')}
+              style={[styles.secondaryBtn, { backgroundColor: Colors.dark.successMuted }]}
+              disabled={statusMutation.isPending}
+            >
+              <Ionicons name="checkmark-done" size={18} color={Colors.dark.success} />
+              <Text style={[styles.secondaryBtnText, { color: Colors.dark.success }]}>
+                Mark Completed
+              </Text>
+            </Pressable>
+          )}
+
+          {/* Driver: Cancel */}
           {canDriverCancel && (
             <Pressable
               onPress={() => {
-                Alert.alert('Cancel Booking', 'Are you sure you want to cancel this booking request?', [
-                  { text: 'Keep it', style: 'cancel' },
-                  { text: 'Cancel Booking', style: 'destructive', onPress: () => statusMutation.mutate('cancelled') },
-                ]);
+                Alert.alert(
+                  'Cancel Booking',
+                  'Are you sure you want to cancel this booking request?',
+                  [
+                    { text: 'Keep it', style: 'cancel' },
+                    {
+                      text: 'Cancel Booking',
+                      style: 'destructive',
+                      onPress: () => statusMutation.mutate('cancelled'),
+                    },
+                  ]
+                );
               }}
-              style={[styles.fullActionBtn, { backgroundColor: Colors.dark.errorMuted }]}
+              style={[styles.secondaryBtn, { backgroundColor: Colors.dark.errorMuted }]}
               disabled={statusMutation.isPending}
             >
               <Ionicons name="close-circle-outline" size={18} color={Colors.dark.error} />
-              <Text style={[styles.actionBtnText, { color: Colors.dark.error }]}>Cancel Request</Text>
+              <Text style={[styles.secondaryBtnText, { color: Colors.dark.error }]}>
+                Cancel Request
+              </Text>
             </Pressable>
           )}
         </View>
@@ -464,12 +518,11 @@ export default function BookingDetailScreen() {
         <View style={{ height: Math.max(insets.bottom, webBottomInset) + 40 }} />
       </ScrollView>
 
-      {/* ── Add Delivery Modal ─────────────────────────────────────────────── */}
+      {/* ── Add Delivery Modal ── */}
       <Modal visible={showDeliveryModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add Delivery</Text>
-
             <View style={styles.typeRow}>
               {(['external_link', 'google_drive', 'dropbox', 'youtube_unlisted', 'photo_gallery', 'other'] as const).map(t => (
                 <Pressable
@@ -483,7 +536,6 @@ export default function BookingDetailScreen() {
                 </Pressable>
               ))}
             </View>
-
             <TextInput
               value={deliveryTitle}
               onChangeText={setDeliveryTitle}
@@ -508,7 +560,6 @@ export default function BookingDetailScreen() {
               style={[styles.modalInput, styles.modalTextarea]}
               multiline
             />
-
             <View style={styles.modalActions}>
               <Pressable onPress={() => setShowDeliveryModal(false)} style={styles.modalCancelBtn}>
                 <Text style={styles.modalCancelText}>Cancel</Text>
@@ -529,7 +580,7 @@ export default function BookingDetailScreen() {
         </View>
       </Modal>
 
-      {/* ── Request Revision Modal ─────────────────────────────────────────── */}
+      {/* ── Request Revision Modal ── */}
       <Modal visible={showRevisionModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -566,6 +617,27 @@ export default function BookingDetailScreen() {
   );
 }
 
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+function PeopleAvatar({ name, role, roleColor, onPress }: {
+  name: string; role: string; roleColor: string; onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} style={styles.personWrap}>
+      <LinearGradient
+        colors={['rgba(176,130,255,0.2)', 'rgba(176,130,255,0.05)']}
+        style={styles.personAvatar}
+      >
+        <Text style={styles.personAvatarText}>{name[0].toUpperCase()}</Text>
+      </LinearGradient>
+      <Text style={styles.personName} numberOfLines={1}>{name}</Text>
+      <View style={[styles.personRolePill, { backgroundColor: `${roleColor}22` }]}>
+        <Text style={[styles.personRoleText, { color: roleColor }]}>{role}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
 function DeliveryItem({ delivery, isDriver, onApprove, onRequestRevision }: {
   delivery: any;
   isDriver: boolean;
@@ -573,11 +645,11 @@ function DeliveryItem({ delivery, isDriver, onApprove, onRequestRevision }: {
   onRequestRevision: () => void;
 }) {
   const DELIVERY_STATUS_META: Record<string, { bg: string; color: string; label: string }> = {
-    pending:             { bg: Colors.dark.warningMuted, color: Colors.dark.warning, label: 'Pending' },
-    uploaded:            { bg: Colors.dark.accentMuted, color: Colors.dark.accent, label: 'Uploaded' },
-    delivered:           { bg: Colors.dark.accentMuted, color: Colors.dark.accent, label: 'Delivered' },
-    revision_requested:  { bg: Colors.dark.errorMuted, color: Colors.dark.error, label: 'Revision Requested' },
-    approved:            { bg: Colors.dark.successMuted, color: Colors.dark.success, label: 'Approved' },
+    pending:            { bg: Colors.dark.warningMuted, color: Colors.dark.warning, label: 'Pending' },
+    uploaded:           { bg: Colors.dark.accentMuted, color: Colors.dark.accent, label: 'Uploaded' },
+    delivered:          { bg: Colors.dark.accentMuted, color: Colors.dark.accent, label: 'Delivered' },
+    revision_requested: { bg: Colors.dark.errorMuted, color: Colors.dark.error, label: 'Revision Requested' },
+    approved:           { bg: Colors.dark.successMuted, color: Colors.dark.success, label: 'Approved' },
   };
 
   const sm = DELIVERY_STATUS_META[delivery.status] || DELIVERY_STATUS_META.pending;
@@ -585,18 +657,18 @@ function DeliveryItem({ delivery, isDriver, onApprove, onRequestRevision }: {
   const isFootageReady = isDriver && delivery.status === 'delivered';
 
   return (
-    <View style={[styles.deliveryCard, isFootageReady && styles.deliveryCardHighlight]}>
+    <View style={[styles.deliveryCard, isFootageReady && { borderColor: Colors.dark.primary }]}>
       {isFootageReady && (
         <View style={styles.footageReadyBanner}>
-          <Ionicons name="film-outline" size={16} color={Colors.dark.primary} />
-          <Text style={styles.footageReadyText}>Your footage is ready</Text>
+          <Ionicons name="film-outline" size={14} color={Colors.dark.primary} />
+          <Text style={styles.footageReadyText}>Your footage is ready to review</Text>
         </View>
       )}
 
-      <View style={styles.deliveryHeader}>
+      <View style={styles.deliveryTop}>
         <View style={{ flex: 1 }}>
           <Text style={styles.deliveryTitle}>{delivery.title}</Text>
-          <Text style={styles.deliveryType}>{DELIVERY_TYPE_LABELS[delivery.deliveryType] || 'Delivery'}</Text>
+          <Text style={styles.deliveryTypeLabel}>{DELIVERY_TYPE_LABELS[delivery.deliveryType] || 'Delivery'}</Text>
         </View>
         <View style={[styles.deliveryStatusBadge, { backgroundColor: sm.bg }]}>
           <Text style={[styles.deliveryStatusText, { color: sm.color }]}>{sm.label}</Text>
@@ -608,9 +680,9 @@ function DeliveryItem({ delivery, isDriver, onApprove, onRequestRevision }: {
       ) : null}
 
       {delivery.revisionNotes && delivery.status === 'revision_requested' ? (
-        <View style={styles.revisionNoteBox}>
-          <Ionicons name="alert-circle-outline" size={14} color={Colors.dark.error} />
-          <Text style={styles.revisionNoteText}>{delivery.revisionNotes}</Text>
+        <View style={styles.revisionBox}>
+          <Ionicons name="alert-circle-outline" size={13} color={Colors.dark.error} />
+          <Text style={styles.revisionText}>{delivery.revisionNotes}</Text>
         </View>
       ) : null}
 
@@ -620,19 +692,22 @@ function DeliveryItem({ delivery, isDriver, onApprove, onRequestRevision }: {
             onPress={() => delivery.externalLink && Linking.openURL(delivery.externalLink)}
             style={styles.openLinkBtn}
           >
-            <Ionicons name="open-outline" size={16} color={Colors.dark.primary} />
+            <Ionicons name="open-outline" size={15} color={Colors.dark.primary} />
             <Text style={styles.openLinkText}>Open Link</Text>
           </Pressable>
         )}
         {isDriver && delivery.status === 'delivered' && (
-          <View style={styles.deliveryDriverActions}>
-            <Pressable onPress={onApprove} style={styles.approveCompleteBtn}>
-              <Ionicons name="checkmark-circle" size={18} color="#fff" />
-              <Text style={styles.approveCompleteBtnText}>Approve & Complete Booking</Text>
+          <View style={{ flex: 1, gap: spacing.sm }}>
+            <Pressable onPress={onApprove} style={styles.approveBtn}>
+              <Ionicons name="checkmark-circle" size={17} color="#fff" />
+              <Text style={styles.approveBtnText}>Approve & Complete</Text>
             </Pressable>
-            <Pressable onPress={onRequestRevision} style={[styles.deliveryActionBtn, { backgroundColor: Colors.dark.errorMuted }]}>
-              <Ionicons name="refresh-outline" size={16} color={Colors.dark.error} />
-              <Text style={[styles.deliveryActionBtnText, { color: Colors.dark.error }]}>Request Revision</Text>
+            <Pressable
+              onPress={onRequestRevision}
+              style={[styles.revisionBtn]}
+            >
+              <Ionicons name="refresh-outline" size={15} color={Colors.dark.error} />
+              <Text style={styles.revisionBtnText}>Request Revision</Text>
             </Pressable>
           </View>
         )}
@@ -641,432 +716,420 @@ function DeliveryItem({ delivery, isDriver, onApprove, onRequestRevision }: {
   );
 }
 
+// ── Styles ─────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.dark.background,
-  },
+  container: { flex: 1, backgroundColor: Colors.dark.background },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.sm,
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.dark.surface,
   },
   headerTitle: {
-    fontSize: 16,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.text,
-    flex: 1,
-    textAlign: 'center',
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.md,
-  },
-  errorText: {
-    fontSize: 16,
-    fontFamily: fonts.regular,
-    color: Colors.dark.textMuted,
-    textAlign: 'center',
-  },
-  statusBanner: {
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  statusBannerText: {
-    fontSize: 13,
-    fontFamily: fonts.semiBold,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  // Section
-  section: {
-    backgroundColor: Colors.dark.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    gap: spacing.md,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    alignItems: 'flex-start',
-  },
-  summaryLabel: {
-    fontSize: 11,
-    fontFamily: fonts.medium,
-    color: Colors.dark.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  summaryValue: {
-    fontSize: 15,
-    fontFamily: fonts.regular,
-    color: Colors.dark.text,
-    lineHeight: 20,
-  },
-  linkText: {
-    color: Colors.dark.primary,
-    fontFamily: fonts.medium,
-  },
-  // Payment
-  paymentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  paymentLabel: {
-    fontSize: 14,
-    fontFamily: fonts.regular,
-    color: Colors.dark.textSecondary,
-  },
-  paymentValue: {
-    fontSize: 15,
-    fontFamily: fonts.semiBold,
+    fontSize: 16, fontFamily: fonts.headingBold,
     color: Colors.dark.text,
   },
-  paymentDivider: {
-    height: 1,
-    backgroundColor: Colors.dark.border,
-    marginVertical: spacing.xs,
-  },
-  paymentClarityBanner: {
-    flexDirection: 'row' as const,
-    alignItems: 'flex-start' as const,
-    gap: spacing.sm,
-    backgroundColor: Colors.dark.successMuted,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  paymentClarityText: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: fonts.regular,
-    color: Colors.dark.success,
-    lineHeight: 20,
-  },
-  paymentPendingNote: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  paymentPendingNoteText: {
-    fontSize: 12,
-    fontFamily: fonts.regular,
-    color: Colors.dark.warning,
-    flex: 1,
-  },
-  // Deliveries
-  addDeliveryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radius.sm,
+  chatBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
     backgroundColor: Colors.dark.primaryMuted,
   },
-  addDeliveryText: {
-    fontSize: 13,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.primary,
+
+  scrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    gap: spacing.md,
   },
-  emptyDelivery: {
-    fontSize: 13,
-    fontFamily: fonts.regular,
+
+  errorText: {
+    fontSize: 16, fontFamily: fonts.regular,
+    color: Colors.dark.textMuted, textAlign: 'center',
+  },
+
+  // Status Hero
+  statusHero: {
+    borderRadius: radius.xl,
+    padding: spacing.xxl,
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  statusIconWrap: {
+    width: 56, height: 56, borderRadius: 28,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  statusLabel: {
+    fontSize: 13, fontFamily: fonts.semiBold,
+    letterSpacing: 1.2, textTransform: 'uppercase',
+  },
+  statusEventName: {
+    fontSize: 20, fontFamily: fonts.headingBold,
+    color: Colors.dark.text, textAlign: 'center',
+    lineHeight: 26,
+  },
+  statusDateRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    marginTop: spacing.xs,
+  },
+  statusDate: {
+    fontSize: 13, fontFamily: fonts.medium,
     color: Colors.dark.textMuted,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingVertical: spacing.sm,
   },
-  deliveryCard: {
+
+  // People card
+  peopleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.dark.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    padding: spacing.lg,
+  },
+  personWrap: {
+    flex: 1, alignItems: 'center', gap: spacing.xs,
+  },
+  personAvatar: {
+    width: 52, height: 52, borderRadius: 26,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  personAvatarText: {
+    fontSize: 20, fontFamily: fonts.bold, color: Colors.dark.primary,
+  },
+  personName: {
+    fontSize: 14, fontFamily: fonts.semiBold,
+    color: Colors.dark.text, textAlign: 'center',
+  },
+  personRolePill: {
+    paddingHorizontal: spacing.sm, paddingVertical: 2,
+    borderRadius: radius.full,
+  },
+  personRoleText: {
+    fontSize: 10, fontFamily: fonts.semiBold,
+  },
+  peopleDivider: {
+    alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.md,
+  },
+  peopleDividerLine: {
+    width: 1, height: 16, backgroundColor: Colors.dark.border,
+  },
+  peopleDividerIcon: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: Colors.dark.primaryMuted,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  // Card
+  card: {
+    backgroundColor: Colors.dark.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  cardLabelRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
+  },
+  cardLabel: {
+    fontSize: 11, fontFamily: fonts.semiBold,
+    color: Colors.dark.textMuted,
+    textTransform: 'uppercase', letterSpacing: 1,
+  },
+
+  // Package
+  packageName: {
+    fontSize: 17, fontFamily: fonts.headingBold,
+    color: Colors.dark.text,
+  },
+  packageDesc: {
+    fontSize: 14, fontFamily: fonts.regular,
+    color: Colors.dark.textSecondary, lineHeight: 20,
+  },
+  notesBox: {
     backgroundColor: Colors.dark.background,
     borderRadius: radius.md,
     padding: spacing.md,
+    gap: 4,
     borderWidth: 1,
     borderColor: Colors.dark.border,
-    gap: spacing.sm,
   },
-  deliveryHeader: {
+  notesLabel: {
+    fontSize: 11, fontFamily: fonts.semiBold,
+    color: Colors.dark.textMuted,
+    textTransform: 'uppercase', letterSpacing: 0.8,
+  },
+  notesText: {
+    fontSize: 14, fontFamily: fonts.regular,
+    color: Colors.dark.text, lineHeight: 20,
+  },
+
+  // Clarity banner
+  clarityBanner: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
+    backgroundColor: Colors.dark.successMuted,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  clarityText: {
+    flex: 1, fontSize: 13, fontFamily: fonts.regular,
+    color: Colors.dark.success, lineHeight: 19,
+  },
+
+  // Receipt
+  receiptRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  deliveryTitle: {
-    fontSize: 14,
-    fontFamily: fonts.semiBold,
+  receiptLabel: {
+    fontSize: 14, fontFamily: fonts.regular,
+    color: Colors.dark.textSecondary,
+  },
+  receiptValue: {
+    fontSize: 15, fontFamily: fonts.semiBold,
     color: Colors.dark.text,
   },
-  deliveryType: {
-    fontSize: 12,
-    fontFamily: fonts.regular,
+  receiptDivider: {
+    height: 1, backgroundColor: Colors.dark.border,
+    marginVertical: spacing.xs,
+  },
+  receiptTotal: {
+    fontSize: 18, fontFamily: fonts.condensedBold,
+  },
+  pendingPaymentNote: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
+  },
+  pendingPaymentText: {
+    fontSize: 12, fontFamily: fonts.regular,
+    color: Colors.dark.warning, flex: 1,
+  },
+
+  // Deliveries
+  deliveriesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  addBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: Colors.dark.primaryMuted,
+    paddingHorizontal: spacing.sm, paddingVertical: 4,
+    borderRadius: radius.sm,
+  },
+  addBtnText: {
+    fontSize: 13, fontFamily: fonts.semiBold,
+    color: Colors.dark.primary,
+  },
+  emptyDeliveries: {
+    alignItems: 'center', gap: spacing.sm,
+    paddingVertical: spacing.lg,
+  },
+  emptyDeliveriesText: {
+    fontSize: 13, fontFamily: fonts.regular,
+    color: Colors.dark.textMuted, textAlign: 'center',
+  },
+
+  // Delivery card
+  deliveryCard: {
+    backgroundColor: Colors.dark.background,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  footageReadyBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
+    backgroundColor: Colors.dark.primaryMuted,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm, paddingVertical: 5,
+    alignSelf: 'flex-start',
+  },
+  footageReadyText: {
+    fontSize: 12, fontFamily: fonts.semiBold,
+    color: Colors.dark.primary,
+  },
+  deliveryTop: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
+  },
+  deliveryTitle: {
+    fontSize: 14, fontFamily: fonts.semiBold,
+    color: Colors.dark.text,
+  },
+  deliveryTypeLabel: {
+    fontSize: 12, fontFamily: fonts.regular,
     color: Colors.dark.textMuted,
   },
   deliveryStatusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-    flexShrink: 0,
+    paddingHorizontal: spacing.sm, paddingVertical: 3,
+    borderRadius: radius.sm, flexShrink: 0,
   },
   deliveryStatusText: {
-    fontSize: 11,
-    fontFamily: fonts.semiBold,
+    fontSize: 11, fontFamily: fonts.semiBold,
   },
   deliveryNotes: {
-    fontSize: 13,
-    fontFamily: fonts.regular,
+    fontSize: 13, fontFamily: fonts.regular,
     color: Colors.dark.textSecondary,
   },
-  revisionNoteBox: {
-    flexDirection: 'row',
-    gap: spacing.xs,
+  revisionBox: {
+    flexDirection: 'row', gap: spacing.xs,
     backgroundColor: Colors.dark.errorMuted,
-    borderRadius: radius.sm,
-    padding: spacing.sm,
+    borderRadius: radius.sm, padding: spacing.sm,
     alignItems: 'flex-start',
   },
-  revisionNoteText: {
-    fontSize: 13,
-    fontFamily: fonts.regular,
-    color: Colors.dark.error,
-    flex: 1,
+  revisionText: {
+    fontSize: 13, fontFamily: fonts.regular,
+    color: Colors.dark.error, flex: 1,
   },
   deliveryActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
+    flexDirection: 'row', gap: spacing.sm,
   },
   openLinkBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: radius.sm,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: Colors.dark.primaryMuted,
+    paddingHorizontal: spacing.sm, paddingVertical: 6,
+    borderRadius: radius.sm,
   },
   openLinkText: {
-    fontSize: 13,
-    fontFamily: fonts.medium,
+    fontSize: 13, fontFamily: fonts.medium,
     color: Colors.dark.primary,
   },
-  deliveryCardHighlight: {
-    borderColor: Colors.dark.primary,
-    borderWidth: 1.5,
-  },
-  footageReadyBanner: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: spacing.xs,
-    backgroundColor: Colors.dark.primaryMuted,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    alignSelf: 'flex-start' as const,
-  },
-  footageReadyText: {
-    fontSize: 13,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.primary,
-  },
-  deliveryDriverActions: {
-    flex: 1,
-    gap: spacing.sm,
-  },
-  approveCompleteBtn: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    gap: spacing.sm,
+  approveBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: spacing.sm,
     backgroundColor: Colors.dark.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
+    borderRadius: radius.md, paddingVertical: spacing.md,
   },
-  approveCompleteBtnText: {
-    fontSize: 14,
-    fontFamily: fonts.semiBold,
-    color: '#fff',
+  approveBtnText: {
+    fontSize: 14, fontFamily: fonts.semiBold, color: '#fff',
   },
-  deliveryActionBtn: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.sm,
-  },
-  deliveryActionBtnText: {
-    fontSize: 13,
-    fontFamily: fonts.medium,
-  },
-  // Actions section
-  actionsSection: {
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  messageBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: Colors.dark.surface,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  messageBtnText: {
-    fontSize: 15,
-    fontFamily: fonts.medium,
-    color: Colors.dark.textSecondary,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  actionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-  },
-  acceptBtn: {
-    backgroundColor: Colors.dark.successMuted,
-  },
-  declineBtn: {
+  revisionBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: spacing.xs,
     backgroundColor: Colors.dark.errorMuted,
+    borderRadius: radius.md, paddingVertical: spacing.sm,
   },
-  actionBtnText: {
-    fontSize: 15,
-    fontFamily: fonts.semiBold,
+  revisionBtnText: {
+    fontSize: 13, fontFamily: fonts.medium,
+    color: Colors.dark.error,
   },
-  fullActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
+
+  // Actions section
+  actionsSection: { gap: spacing.sm },
+
+  actionPair: { flexDirection: 'row', gap: spacing.sm },
+  actionPairBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: spacing.xs,
+    paddingVertical: spacing.lg, borderRadius: radius.md,
   },
+  acceptBtn: { backgroundColor: Colors.dark.successMuted },
+  declineBtn: { backgroundColor: Colors.dark.errorMuted },
+  actionPairBtnText: {
+    fontSize: 15, fontFamily: fonts.semiBold,
+  },
+
+  primaryBtn: {
+    borderRadius: radius.md, overflow: 'hidden',
+  },
+  primaryBtnGradient: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: spacing.sm,
+    paddingVertical: spacing.lg,
+  },
+  primaryBtnText: {
+    fontSize: 16, fontFamily: fonts.bold, color: '#fff',
+  },
+
+  secondaryBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: spacing.sm,
+    paddingVertical: spacing.md, borderRadius: radius.md,
+  },
+  secondaryBtnText: {
+    fontSize: 15, fontFamily: fonts.semiBold,
+  },
+
+  waitingBanner: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: spacing.sm,
+    backgroundColor: Colors.dark.warningMuted,
+    borderRadius: radius.md, paddingVertical: spacing.md,
+  },
+  waitingText: {
+    fontSize: 14, fontFamily: fonts.medium,
+    color: Colors.dark.warning,
+  },
+
   // Modals
   modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: Colors.dark.surface,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    padding: spacing.xxl,
-    gap: spacing.md,
+    borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
+    padding: spacing.xxl, gap: spacing.md,
   },
   modalTitle: {
-    fontSize: 18,
-    fontFamily: fonts.headingBold,
-    color: Colors.dark.text,
-    marginBottom: spacing.xs,
+    fontSize: 18, fontFamily: fonts.headingBold,
+    color: Colors.dark.text, marginBottom: spacing.xs,
   },
-  typeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
+  typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   typeChip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm, paddingVertical: spacing.xs,
     borderRadius: radius.full,
     backgroundColor: Colors.dark.background,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderWidth: 1, borderColor: Colors.dark.border,
   },
   typeChipActive: {
     backgroundColor: Colors.dark.primaryMuted,
     borderColor: Colors.dark.primary,
   },
   typeChipText: {
-    fontSize: 12,
-    fontFamily: fonts.medium,
+    fontSize: 12, fontFamily: fonts.medium,
     color: Colors.dark.textMuted,
   },
-  typeChipTextActive: {
-    color: Colors.dark.primary,
-  },
+  typeChipTextActive: { color: Colors.dark.primary },
   modalInput: {
     backgroundColor: Colors.dark.background,
     borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: 15,
-    fontFamily: fonts.regular,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+    fontSize: 15, fontFamily: fonts.regular,
     color: Colors.dark.text,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderWidth: 1, borderColor: Colors.dark.border,
   },
-  modalTextarea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
+  modalTextarea: { minHeight: 80, textAlignVertical: 'top' },
   modalActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.xs,
+    flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs,
   },
   modalCancelBtn: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    flex: 1, alignItems: 'center',
+    paddingVertical: spacing.md, borderRadius: radius.md,
     backgroundColor: Colors.dark.background,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderWidth: 1, borderColor: Colors.dark.border,
   },
   modalCancelText: {
-    fontSize: 15,
-    fontFamily: fonts.medium,
+    fontSize: 15, fontFamily: fonts.medium,
     color: Colors.dark.textMuted,
   },
   modalSubmitBtn: {
-    flex: 2,
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    flex: 2, alignItems: 'center',
+    paddingVertical: spacing.md, borderRadius: radius.md,
     backgroundColor: Colors.dark.primary,
   },
   modalSubmitText: {
-    fontSize: 15,
-    fontFamily: fonts.semiBold,
-    color: '#fff',
+    fontSize: 15, fontFamily: fonts.semiBold, color: '#fff',
   },
 });
