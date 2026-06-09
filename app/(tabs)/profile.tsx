@@ -133,11 +133,13 @@ export default function ProfileScreen() {
     queryKey: ['/api/packages', user?.id],
     queryFn: getQueryFn({ on401: 'returnNull' }),
     enabled: !!user?.id,
+    select: (data) => data ?? [],
   });
 
   const { data: myAttendance = [] } = useQuery<any[]>({
     queryKey: ['/api/attendance'],
     queryFn: getQueryFn({ on401: 'returnNull' }),
+    select: (data) => data ?? [],
   });
 
   const socialLinks = (() => {
