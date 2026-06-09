@@ -1,0 +1,106 @@
+You are a senior mobile + backend engineer. Make MyGrid V2 genuinely beta-ready with the highest priority on UX and stability. Do NOT add new features unrelated to portfolios, profile browsing, or app reliability.
+
+CURRENT STACK (KEEP IT):
+- Expo / React Native (expo-router)
+- Express + Postgres + Drizzle
+- React Query already integrated
+- Session cookie auth already integrated
+
+TOP PRIORITIES:
+1) Real portfolio uploads (photos) with fast, reliable hosting
+2) Public creator profiles must display portfolio + video links
+3) Add README + QA checklist so the app is testable and repeatable
+4) Make key screens feel “fresh” using refresh-on-focus (without aggressive polling)
+
+------------------------------------------------------------
+A) REAL PHOTO UPLOADS (MUST IMPLEMENT)
+------------------------------------------------------------
+Right now adding a photo saves "photo_placeholder" and does not upload anything.
+
+Implement a real upload pipeline:
+
+Option 1 (Preferred for stability): Cloudinary uploads
+- Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET env vars
+- Create an API route POST /api/uploads/signature that returns a signed upload payload (timestamp + signature)
+- Client uploads image directly to Cloudinary using the signed payload
+- Client receives secure_url and saves it via POST /api/portfolio with:
+  - mediaType: "photo"
+  - mediaUrl: secure_url
+  - caption
+
+Option 2 (Acceptable fallback): Server-side upload using multer
+- Add POST /api/uploads (multipart/form-data) with file size limits
+- Store to a persistent object storage provider (S3/R2/etc). Do NOT store only on local disk if it will not persist in deployment.
+- Return a public URL.
+- Client saves portfolio item with mediaUrl.
+
+Requirements:
+- Enforce max upload size (e.g., 10MB)
+- Compress images client-side if possible (quality 0.7–0.8)
+- Handle upload errors gracefully with UI messages and retry
+- Update the Profile portfolio “Add Photo” flow to use this real upload pipeline.
+
+------------------------------------------------------------
+B) PUBLIC PROFILE PORTFOLIO DISPLAY (MUST IMPLEMENT)
+------------------------------------------------------------
+Update app/profile/[id].tsx:
+- Render portfolio items that are already being fetched:
+  - Photos: show a responsive grid using expo-image (thumbnails)
+  - external_video: show a card with caption + hostname and open link via Linking.openURL
+- If no portfolio exists, show an empty state message like:
+  “No portfolio yet”
+- Ensure this works for both Driver and Creator profiles.
+- Ensure it’s fast: use cached data via React Query; don’t refetch constantly.
+
+------------------------------------------------------------
+C) CREATOR PACKAGES + PORTFOLIO VISIBILITY RULE (HIGH IMPACT)
+------------------------------------------------------------
+For creators, ensure at least one of the following is visible on their public profile:
+- a package
+- a portfolio item
+
+If neither exists, show an empty state with:
+- “This creator hasn’t added packages or portfolio yet.”
+
+In onboarding or Profile screen, encourage creators to add at least one.
+
+------------------------------------------------------------
+D) REFRESH ON FOCUS (UX POLISH, NO HEAVY POLLING)
+------------------------------------------------------------
+Implement refresh-on-focus for:
+- Messages tab (conversation list)
+- Bookings tab
+- Event detail attendees list
+
+Use expo-router focus events (or React Navigation focus) and trigger:
+- queryClient.invalidateQueries for the relevant keys
+Do NOT reintroduce aggressive polling.
+
+------------------------------------------------------------
+E) DOCUMENTATION DELIVERABLES (MUST ADD)
+------------------------------------------------------------
+Add:
+1) README.md with:
+- setup
+- env vars required
+- running locally
+- running on Replit
+- database migration steps
+- safe seeding instructions (admin key header in production)
+
+2) QA_CHECKLIST.md with manual test steps:
+- register/login/logout
+- app restart session persistence
+- onboarding
+- join event as creator set maxBookings
+- add photo portfolio item (REAL upload)
+- add external video link
+- public profile shows portfolio + packages
+- booking flow (request + accept updates availability)
+- messages load and update without heavy polling
+
+ACCEPTANCE CRITERIA:
+- Portfolio photo uploads result in a real hosted image URL, not a placeholder.
+- Public profiles display portfolio items (photos + external videos).
+- README.md and QA_CHECKLIST.md exist and are accurate.
+- No aggressive polling is added back; use refresh-on-focus instead.

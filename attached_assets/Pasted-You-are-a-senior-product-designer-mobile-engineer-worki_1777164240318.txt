@@ -1,0 +1,152 @@
+You are a senior product designer + mobile engineer working on MyGrid.
+
+Goal: improve event-card readability and upgrade creator profiles so they feel more premium, trustworthy, and booking-focused.
+
+Do NOT add a social feed, likes, comments, follows, payments, or unrelated features.
+
+------------------------------------------------------------
+A) EVENT CARD HIERARCHY UPGRADE
+------------------------------------------------------------
+
+Improve the Events list card layout so users can scan events faster.
+
+Required layout order:
+
+1. Thumbnail/banner image
+2. Event name — strongest visual element
+3. Host line
+4. Date line
+5. Location line
+6. Event type pill / featured pill if available
+
+Design requirements:
+- Event name should be bold, larger, and visually dominant.
+- Limit event name to 2 lines max.
+- Host line should be smaller and subtle:
+  “Hosted by {host}”
+- Date and location should be easy to read with small icons if available.
+- Event type pill should be small and clean.
+- Featured events should have a subtle “Featured” badge.
+- Maintain dark premium motorsports style.
+- Preserve current event click behavior.
+
+Acceptance:
+- Event name clearly stands out first.
+- Cards look consistent with or without real banners.
+- No event data logic is broken.
+
+------------------------------------------------------------
+B) CREATOR PROFILE PREMIUM UPGRADE
+------------------------------------------------------------
+
+Upgrade creator profiles so drivers instantly understand:
+- who the creator is
+- what they shoot
+- where they’ll be
+- what packages they offer
+- how to book them
+
+Profile layout should prioritize booking conversion.
+
+Required creator profile structure:
+
+1. Hero/Profile Header
+- Large profile image/avatar
+- Display name / brand name
+- Creator tags: Photographer, Videographer, Drone, Social Content, etc.
+- Location
+- Short bio
+- Message button
+- Book Creator button if viewer is not the profile owner
+
+2. Trust / Activity Summary Row
+Show compact stats if data exists:
+- Portfolio items count
+- Events attending count
+- Packages count
+- Completed bookings count if available
+
+If a stat is unavailable, hide it gracefully.
+
+3. Availability / Upcoming Events Section
+- Show upcoming events the creator is attending
+- Include availability badge:
+  Available / Limited / Fully Booked
+- Make each event card clickable
+
+4. Packages Section
+- Display pricing packages as premium cards
+- Package card should include:
+  - Package title
+  - Short description
+  - Price
+  - “Request Booking” button
+- Request Booking should route into the existing booking flow with creator preselected where possible.
+
+5. Portfolio Section
+- Keep current photo/video portfolio grid
+- Make it visually cleaner:
+  - consistent spacing
+  - rounded corners
+  - thumbnail preview
+  - external video cards should look intentional, not plain links
+
+6. Empty States
+If creator has no packages:
+- Show: “No packages added yet.”
+
+If creator has no portfolio:
+- Show: “No portfolio added yet.”
+
+If creator has no upcoming events:
+- Show: “No upcoming events listed yet.”
+
+------------------------------------------------------------
+C) PROFILE OWNER VIEW
+------------------------------------------------------------
+
+If viewing own creator profile:
+- Show “Edit Profile”
+- Show “Add Package”
+- Show “Add Portfolio Item”
+- Do NOT show “Book Creator” button to self
+
+If viewing someone else:
+- Show “Message”
+- Show “Book Creator”
+- Do NOT show owner editing buttons
+
+------------------------------------------------------------
+D) PERFORMANCE / QUALITY
+------------------------------------------------------------
+
+- Use existing data endpoints where possible.
+- Do not create unnecessary new backend features unless required.
+- Use existing React Query patterns.
+- Avoid aggressive polling.
+- Keep UI responsive on mobile.
+- Make sure profile works for:
+  - creator only
+  - driver only
+  - both driver + creator
+
+------------------------------------------------------------
+E) QA CHECKLIST UPDATE
+------------------------------------------------------------
+
+Update QA_CHECKLIST.md with:
+- Event card hierarchy check
+- Creator profile owner vs public view
+- Package request booking button
+- Empty state checks
+- Dual-role profile check
+
+------------------------------------------------------------
+ACCEPTANCE CRITERIA
+------------------------------------------------------------
+
+1. Event names are clearly the dominant text on event cards.
+2. Creator profiles feel more premium and booking-focused.
+3. Drivers can clearly see packages, portfolio, upcoming events, and booking CTA.
+4. Profile owners can edit/add content without seeing a self-booking button.
+5. No unrelated social/feed/payment features are added.

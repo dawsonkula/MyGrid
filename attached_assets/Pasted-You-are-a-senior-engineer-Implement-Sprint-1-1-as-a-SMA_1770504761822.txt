@@ -1,0 +1,112 @@
+You are a senior engineer. Implement “Sprint 1.1” as a SMALL polish pass on MyGrid V8. 
+Do NOT add new major features. Do NOT add a social feed. Keep changes minimal and UX-focused.
+
+SPRINT 1.1 GOALS:
+1) Improve event card consistency with a clear thumbnail placeholder when no banner exists
+2) Improve the pre-login landing page by showing event banners (when available) for Featured Events
+3) Add light API redaction for logged-out users so the landing page can “tease” without exposing full details
+
+Stack stays the same:
+- Expo / React Native (expo-router)
+- Express API + Postgres + Drizzle
+- Cloudinary uploads
+- React Query caching
+
+------------------------------------------------------------
+A) EVENT CARD THUMBNAIL PLACEHOLDER (MUST)
+------------------------------------------------------------
+
+Problem:
+Event cards only show an image if bannerImage exists; otherwise they look inconsistent.
+
+Implement:
+- In the Events list card UI, reserve a consistent “thumbnail zone” at the top of every event card.
+- If bannerImage exists:
+  - render the banner image (cover)
+- If bannerImage is missing:
+  - render a placeholder thumbnail area with:
+    - a simple motorsports-style gradient background
+    - an icon (calendar/flag/track) if available
+    - optional short text like “No banner” (subtle)
+
+Constraints:
+- Do not change event sorting or event logic.
+- Ensure images load efficiently (expo-image if used already).
+- Ensure loading states do not cause layout jumps.
+
+------------------------------------------------------------
+B) LANDING PAGE FEATURED EVENTS WITH BANNERS (MUST)
+------------------------------------------------------------
+
+On the logged-out landing page, the Featured Events section should display banners if available.
+
+Implement:
+- In Featured Events teaser cards, show:
+  - banner image if present
+  - otherwise show the same placeholder thumbnail used in event cards
+- Keep the landing page “teaser” nature:
+  - do not expose attendee lists, messaging, bookings, or full profiles without auth
+
+------------------------------------------------------------
+C) LIGHT API REDACTION FOR LOGGED-OUT USERS (MUST)
+------------------------------------------------------------
+
+We want logged-out visitors to see teasers but not full details.
+
+1) Add a simple auth detection helper on the server to determine if the request has a valid session.
+- If logged in, return full data as normal.
+- If logged out, return a redacted subset.
+
+2) For Events list endpoint (e.g. GET /api/events):
+- Logged OUT response should include only:
+  - id
+  - name
+  - venue
+  - location
+  - dateStart/dateEnd
+  - bannerImage (if present)
+- It should NOT include:
+  - attendee lists
+  - any sensitive organizer/owner data beyond created_by if you currently expose it (can omit created_by)
+- This endpoint can remain publicly accessible for landing “teasers.”
+
+3) For Event detail endpoint (e.g. GET /api/events/:id):
+- Logged OUT should include only the same subset above (plus description if you have one).
+- Do NOT return attendee lists unless logged in.
+
+4) For User profile endpoint (e.g. GET /api/users/:id):
+- Logged OUT response should be redacted:
+  - allow displayName, profileImage, and role flags
+  - do NOT return:
+    - social links (optional: you may hide these until login)
+    - full packages list (optional: can show count only)
+    - portfolio items (optional: show 1–2 blurred placeholders or return empty)
+- Logged IN behavior remains unchanged.
+
+Important:
+- Do not break the app for logged-in users.
+- Ensure the landing page uses the redacted endpoints successfully.
+- Add clear code comments indicating “public teaser mode” logic.
+
+------------------------------------------------------------
+D) QA + DOCS (MUST)
+------------------------------------------------------------
+
+Update QA_CHECKLIST.md with:
+- Event cards show placeholder thumbnail when no banner
+- Landing featured events show banner/placeholder
+- Logged-out landing can load event teasers
+- Logged-out user cannot see attendee lists or full profile details
+
+Update README.md briefly if needed:
+- Mention that logged-out users see redacted “teaser” data.
+
+------------------------------------------------------------
+ACCEPTANCE CRITERIA
+------------------------------------------------------------
+
+- Every event card has a consistent thumbnail area (banner or placeholder).
+- Landing page Featured Events shows banner/placeholder.
+- Logged-out requests receive redacted data; logged-in requests unchanged.
+- No new tabs, no feed, no social features.
+- Minimal changes, no refactors unrelated to these goals.

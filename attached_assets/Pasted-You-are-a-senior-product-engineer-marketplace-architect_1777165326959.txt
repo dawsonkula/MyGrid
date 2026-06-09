@@ -1,0 +1,316 @@
+You are a senior product engineer + marketplace architect working on MyGrid.
+
+Goal: improve booking conversion and build the foundation for paid transactions + footage delivery between drivers and media creators.
+
+Do NOT add subscriptions yet.
+Do NOT add social feed features.
+Do NOT add unrelated features.
+
+------------------------------------------------------------
+A) CREATOR PROFILE CONVERSION UPGRADE
+------------------------------------------------------------
+
+1. Make “Book Creator” the strongest CTA:
+- Place near top of creator profile.
+- Use primary button styling.
+- Hide when viewing own profile.
+
+2. Improve package cards:
+Each package card should show:
+- Package title
+- Price, visually prominent
+- Short description
+- Estimated delivery time if available
+- “Request Booking” button
+
+3. Add optional package label:
+- Add `isFeatured` or `isPopular` boolean to packages.
+- Display “Most Popular” badge on one package if enabled.
+- Do not require this field.
+
+4. Improve trust signals:
+Show compact creator stats if data exists:
+- Portfolio items count
+- Upcoming events count
+- Completed bookings count
+- Average response time placeholder if not yet tracked
+
+If data does not exist, hide gracefully.
+
+------------------------------------------------------------
+B) EVENT → CREATOR CONNECTION
+------------------------------------------------------------
+
+Improve event detail pages so bookings naturally start from events.
+
+On each event detail page:
+- Show “Media Creators Attending”
+- Each creator card should show:
+  - profile image
+  - display name / brand name
+  - creator tags
+  - availability badge
+  - starting package price if available
+  - “View Profile”
+  - “Book” button
+
+Booking from an event should prefill:
+- eventId
+- creatorId
+
+Acceptance:
+Drivers should be able to go:
+Event → Creator attending → Book creator
+with minimal friction.
+
+------------------------------------------------------------
+C) BOOKING FLOW OPTIMIZATION
+------------------------------------------------------------
+
+Improve booking request flow:
+
+Booking should include:
+- eventId
+- driverId
+- creatorId
+- packageId
+- package price at time of booking
+- platform fee
+- creator payout estimate
+- notes from driver
+- status
+
+Booking statuses:
+- requested
+- accepted
+- payment_pending
+- paid
+- in_progress
+- footage_delivered
+- completed
+- declined
+- cancelled
+- disputed
+
+Important:
+- Do not actually process real payments yet unless Stripe is already safely scaffolded.
+- Build the database and UI structure so Stripe Connect / escrow-style payments can be added next.
+
+------------------------------------------------------------
+D) TRANSACTION STRUCTURE FOUNDATION
+------------------------------------------------------------
+
+Add a transaction model/table.
+
+Transaction fields:
+- id
+- bookingId
+- driverId
+- creatorId
+- eventId
+- packageId
+- grossAmount
+- platformFeeAmount
+- creatorPayoutAmount
+- currency
+- paymentStatus
+- payoutStatus
+- stripePaymentIntentId nullable
+- stripeTransferId nullable
+- createdAt
+- updatedAt
+
+Payment statuses:
+- not_started
+- pending
+- paid
+- failed
+- refunded
+- partially_refunded
+- disputed
+
+Payout statuses:
+- not_started
+- pending
+- paid
+- failed
+- held
+
+Platform fee:
+- Add configurable percentage:
+  PLATFORM_FEE_PERCENT
+- Default to 10 percent if not set.
+- Calculate:
+  platformFeeAmount = grossAmount * feePercent
+  creatorPayoutAmount = grossAmount - platformFeeAmount
+
+Show this clearly in booking review:
+- Package price
+- MyGrid fee
+- Creator receives
+
+For now this can be informational/scaffolded if Stripe is not fully active.
+
+------------------------------------------------------------
+E) FOOTAGE / CONTENT DELIVERY FOUNDATION
+------------------------------------------------------------
+
+Add delivery system linked to bookings.
+
+Create a delivery table/model:
+- id
+- bookingId
+- creatorId
+- driverId
+- deliveryType
+- title
+- notes
+- fileUrl nullable
+- externalLink nullable
+- status
+- createdAt
+- updatedAt
+
+Delivery types:
+- photo_gallery
+- video_file
+- external_link
+- google_drive
+- dropbox
+- youtube_unlisted
+- other
+
+Delivery statuses:
+- pending
+- uploaded
+- delivered
+- revision_requested
+- approved
+
+Creator flow:
+- On accepted/paid/in_progress bookings, creator can add delivery item.
+- Creator can upload file or paste external link.
+- External links should support Google Drive, Dropbox, YouTube, Vimeo, or generic URL.
+
+Driver flow:
+- Driver can view delivered content.
+- Driver can mark delivery as approved.
+- Driver can request revision with notes.
+
+Important:
+- For MVP, prioritize external links over large file hosting.
+- Do not build massive video hosting.
+- Reuse Cloudinary for images only if appropriate.
+- For large videos, encourage external link delivery.
+
+------------------------------------------------------------
+F) BOOKING DETAIL PAGE UPGRADE
+------------------------------------------------------------
+
+Booking detail page should become the command center.
+
+Sections:
+1. Booking summary
+- event
+- creator
+- driver
+- package
+- date
+- status
+
+2. Payment summary
+- package price
+- platform fee
+- creator payout estimate
+- payment status
+
+3. Delivery section
+- delivered files/links
+- delivery status
+- approve delivery button
+- request revision button
+
+4. Messaging shortcut
+- direct button to open chat
+
+5. Status actions
+Creator:
+- accept booking
+- decline booking
+- mark in progress
+- add delivery
+
+Driver:
+- cancel request if still pending
+- view delivery
+- approve delivery
+- request revision
+
+------------------------------------------------------------
+G) STRIPE READINESS ONLY
+------------------------------------------------------------
+
+Prepare for Stripe Connect later, but do not force full Stripe live payments yet.
+
+Add placeholders/env documentation for:
+- STRIPE_SECRET_KEY
+- STRIPE_WEBHOOK_SECRET
+- STRIPE_CONNECT_CLIENT_ID
+
+Add comments/docs explaining expected future flow:
+1. Driver pays
+2. Funds are held/managed through Stripe
+3. MyGrid takes platform fee
+4. Creator payout is released after completion/approval
+
+Do not create unsafe payment code.
+Do not fake real payments as completed unless clearly marked as test mode.
+
+------------------------------------------------------------
+H) QA + DOCS
+------------------------------------------------------------
+
+Update README.md:
+- Explain booking lifecycle
+- Explain transaction fee scaffold
+- Explain delivery workflow
+- Explain Stripe future integration
+
+Update QA_CHECKLIST.md:
+- Event → creator → booking flow
+- Package fee calculation
+- Booking status transitions
+- Creator adds delivery link
+- Driver approves delivery
+- Driver requests revision
+- Creator cannot edit someone else’s booking/delivery
+- Driver cannot approve another driver’s delivery
+
+------------------------------------------------------------
+I) SECURITY / PERMISSIONS
+------------------------------------------------------------
+
+Add server-side authorization checks:
+- Only booking creator/driver can view booking details
+- Only assigned creator can add delivery
+- Only assigned driver can approve/request revision
+- Users cannot modify transactions they do not own
+- Users cannot change payout amounts from client input
+
+Never trust fee values sent by client.
+All fee calculations must happen server-side.
+
+------------------------------------------------------------
+ACCEPTANCE CRITERIA
+------------------------------------------------------------
+
+1. Creator profile has stronger booking CTA and better package presentation.
+2. Event detail page strongly connects events to attending creators.
+3. Booking flow pre-fills event and creator when started from event page.
+4. Booking records include package price snapshot and fee breakdown.
+5. Transaction scaffold exists with platform fee calculation.
+6. Delivery system exists for external links and optional uploads.
+7. Booking detail page shows payment + delivery status clearly.
+8. Permissions prevent users from modifying other users’ bookings, deliveries, or transactions.
+9. No subscriptions added.
+10. No social feed added.

@@ -1,0 +1,79 @@
+You are a senior engineer. Make only minor hygiene/stability improvements to MyGrid V5. Do NOT add new features.
+
+MINOR ISSUES TO FIX:
+1) The project export contains unnecessary folders like `.expo/`, `.config/`, and sometimes `.git/`. This bloats exports and can cause confusion.
+2) Upload behavior: the app currently falls back to local disk uploads if Cloudinary is unavailable. For beta we need a clear, deliberate behavior controlled by environment flags.
+
+------------------------------------------------------------
+A) REPO / EXPORT HYGIENE (MUST)
+------------------------------------------------------------
+
+1) Ensure the repository does NOT include these folders/files:
+- .expo/
+- .config/
+- .git/
+- node_modules/
+- dist/
+- build/
+- *.log
+- .env (real secrets)
+
+2) Add or update `.gitignore` to exclude:
+- .expo/
+- .config/
+- .git/
+- node_modules/
+- dist/
+- build/
+- *.log
+- .env
+- uploads/ (if present)
+
+3) If the workspace currently contains `.expo/` or `.config/`, remove them from the project directory (do not rely only on .gitignore).
+4) Ensure ZIP exports / commits do not include those folders.
+
+------------------------------------------------------------
+B) UPLOAD FALLBACK BEHAVIOR (MUST)
+------------------------------------------------------------
+
+Add an environment flag to control whether local upload fallback is allowed:
+
+- `ALLOW_LOCAL_UPLOAD_FALLBACK` (default: false in production, true in dev)
+
+Rules:
+- If Cloudinary env vars are present, always use Cloudinary signed uploads.
+- If Cloudinary env vars are missing:
+  - If ALLOW_LOCAL_UPLOAD_FALLBACK=true -> allow POST /api/uploads to store locally (dev only)
+  - If ALLOW_LOCAL_UPLOAD_FALLBACK=false -> return a clear error:
+    "Uploads not configured. Please set Cloudinary env vars."
+
+Implementation details:
+- Update server upload route(s) to enforce the flag.
+- Update client upload flow to show a clear error if uploads are not configured (no silent fallback).
+- Update /health response to indicate:
+  - cloudinary_configured: true/false
+  - local_upload_fallback_enabled: true/false
+
+------------------------------------------------------------
+C) DOCUMENTATION (MUST)
+------------------------------------------------------------
+
+Update README.md to include:
+- Explanation of Cloudinary uploads (preferred)
+- Explanation of local fallback behavior and the ALLOW_LOCAL_UPLOAD_FALLBACK flag
+- Which env vars are required for beta production
+
+Update QA_CHECKLIST.md to add:
+- Verify local fallback is disabled in production
+- Verify Cloudinary upload works and persists after redeploy
+
+------------------------------------------------------------
+DELIVERABLES / ACCEPTANCE CRITERIA
+------------------------------------------------------------
+
+- `.expo/`, `.config/`, `.git/` are not present in repo/export.
+- `.gitignore` covers those items.
+- Upload behavior is deterministic:
+  - Beta/production should not silently fallback to local disk.
+- README and QA checklist are updated accordingly.
+- No other app features are changed.

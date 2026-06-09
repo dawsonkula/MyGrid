@@ -1,0 +1,172 @@
+You are a senior mobile engineer + backend engineer. Your job is to harden the existing MyGrid MVP for excellent user experience and stability on iOS/Android. Do NOT add new “nice-to-have” features. Fix the highest impact issues that will affect performance, reliability, and first impressions.
+
+CURRENT STACK (KEEP IT):
+- Expo / React Native (expo-router)
+- Express backend + Postgres + Drizzle
+- Session-based auth with cookies
+- Current endpoints under /api/*
+- Current UI routes under app/(auth), app/(tabs), app/event/[id], app/profile/[id], app/booking/create
+
+TOP PRIORITY GOALS:
+1) Smooth onboarding and profile experience for creators (portfolio + packages visible and editable)
+2) Stable authentication experience on mobile (no random logouts, clear error handling)
+3) Faster screens and reduced network churn (avoid aggressive polling, use caching)
+4) Lock down insecure endpoints and production footguns
+
+------------------------------------------------------------
+A) SECURITY + PRODUCTION FOOTGUNS (MUST FIX)
+------------------------------------------------------------
+
+1) Lock down the /api/seed endpoint:
+- Ensure it only runs in development OR requires an ADMIN_KEY env var.
+- In production, it must return 404 or 403.
+
+2) Remove default session secret fallback:
+- SESSION_SECRET must be required.
+- If missing, server should refuse to start with a clear error.
+- Ensure cookies are set correctly for production:
+  - secure true when behind https
+  - sameSite appropriate
+  - httpOnly true
+
+3) Add basic rate limiting to auth endpoints:
+- Apply a simple rate limiter to /api/auth/login and /api/auth/register to reduce abuse.
+
+------------------------------------------------------------
+B) AUTH RELIABILITY + UX (MUST FIX)
+------------------------------------------------------------
+
+1) Mobile session stability:
+- Ensure fetch requests consistently include credentials.
+- Add a centralized API client wrapper that:
+  - sets baseURL from env
+  - always uses credentials: "include"
+  - provides timeout + retries for idempotent GETs
+  - normalizes error messages
+
+2) Add robust loading + error states:
+- All major screens: Home, Events, Event Detail, Profile, Messages, Bookings
+- Avoid blank screens.
+- Show “retry” button if network fails.
+
+3) Add “Session Expired” handling:
+- If /api/auth/me returns 401, redirect to login and show a friendly message.
+- Prevent infinite loops.
+
+------------------------------------------------------------
+C) PERFORMANCE: NETWORK + CACHING (MUST FIX)
+------------------------------------------------------------
+
+The current app polls messages every 3s and conversation lists every 5s. This is too heavy for mobile UX and battery.
+
+1) Implement client-side caching for API reads:
+- Use TanStack Query (React Query) or an equivalent lightweight cache.
+- Cache: events list, event detail, profile detail, bookings list, conversations list, messages list.
+- Add sensible staleTimes so the app feels instant when navigating back and forth.
+
+2) Reduce polling drastically:
+- Replace message polling with either:
+  a) websocket client integration using the existing /ws server (preferred), OR
+  b) reduce polling to 15–30 seconds, plus manual refresh + refresh-on-focus
+- Implement “refresh on screen focus” for Messages and Bookings.
+
+3) Optimize image loading:
+- Portfolio/profile/event images must use efficient components (expo-image if available).
+- Use thumbnails where possible and avoid loading massive full-res images in lists.
+
+------------------------------------------------------------
+D) MVP UX COMPLETION: PORTFOLIO + PACKAGES (HIGH IMPACT)
+------------------------------------------------------------
+
+Creators MUST be able to show work and rates or the marketplace fails.
+
+1) Implement portfolio display on Profile:
+- Show a grid gallery for photos.
+- Show external video links (YouTube/Vimeo) as cards with title + open link.
+- Load from /api/portfolio/:userId.
+
+2) Implement portfolio management for the logged-in user:
+- “Add Photo” button using expo-image-picker -> upload to backend/storage -> create portfolio record.
+- “Add Video Link” button (input URL + optional title) -> create portfolio record with media_type=external_video.
+- Allow deleting portfolio items for own profile only.
+
+3) Implement packages display on creator Profile:
+- Show packages list (title, description, price).
+- Load from /api/packages/:creatorId (or appropriate endpoint).
+- On own profile, allow add/edit/delete packages.
+
+4) Onboarding must ensure creators have at least ONE of:
+- a package OR portfolio item
+Before finishing onboarding, show a gentle prompt: “Add at least one package or portfolio item to start getting booked.”
+
+------------------------------------------------------------
+E) EVENT JOIN UX: ROLE + AVAILABILITY (HIGH IMPACT)
+------------------------------------------------------------
+
+Backend supports attendance_role + availability_status + maxBookings. Make UI match.
+
+1) When joining an event, show a modal with:
+- Attendance role: Driver / Media / Both
+- If Media or Both:
+  - Set maxBookings (default 3)
+  - Set initial availability (Available by default)
+- Save to attendance table.
+
+2) Event Detail should clearly show:
+- Media attendees with availability badge (Available / Limited / Fully Booked)
+- Drivers attendee list
+
+------------------------------------------------------------
+F) CONFIGURATION: BASE URL + ENV (MUST FIX)
+------------------------------------------------------------
+
+The current EXPO_PUBLIC_DOMAIN logic is Replit-specific.
+
+1) Implement a robust base URL resolver:
+- If running in Replit, use the domain env var.
+- If running locally, default to http://localhost:PORT
+- If production, use EXPO_PUBLIC_API_URL env var.
+- Provide a single documented place to change it.
+
+2) Provide a .env.example documenting required env vars:
+- DATABASE_URL
+- SESSION_SECRET
+- ADMIN_KEY (if used)
+- EXPO_PUBLIC_API_URL (for production)
+- any others currently required
+
+------------------------------------------------------------
+DELIVERABLES REQUIRED
+------------------------------------------------------------
+
+1) Updated code implementing A–F.
+2) Updated README:
+- how to run locally
+- how to run in Replit
+- required env vars
+- how to seed dev data safely
+3) A short “QA checklist” markdown file with manual test steps:
+- login/register
+- onboarding
+- join event as creator and set max bookings
+- add portfolio photo + video link
+- create/edit package
+- request booking
+- accept booking updates availability
+- messages update without aggressive polling
+- session expired behavior
+
+------------------------------------------------------------
+ACCEPTANCE CRITERIA
+------------------------------------------------------------
+
+- No public /api/seed access in production.
+- SESSION_SECRET required; server fails fast if missing.
+- Major screens have loading + error + retry UI.
+- Navigation feels fast due to caching; returning to screens is instant.
+- Messages do NOT poll every 3 seconds; either websocket works or polling is reduced and refreshed on focus.
+- Creator profiles show portfolio + packages; creators can manage both from their profile.
+- Event join flow includes role selection and creator availability configuration.
+- App is stable on device: login persists after app restart.
+
+Proceed step-by-step and keep changes minimal and clean. Do not introduce new libraries unless necessary for caching (React Query allowed). Prefer maintainable code over quick hacks.

@@ -1,0 +1,71 @@
+You are a senior Expo + Express engineer. Improve MyGrid V3 for maximum UX stability and launch readiness. Do not add new marketplace features.
+
+TOP GOALS:
+1) Make photo uploads work reliably on real iOS/Android devices
+2) Improve upload UX (compression + progress + better errors)
+3) Add README.md + QA_CHECKLIST.md so the project is repeatable
+4) Keep changes minimal and clean
+
+A) FIX NATIVE PHOTO UPLOADS (MUST)
+Current issue: native upload path uses expo-file-system File which is unreliable. Replace with the standard Expo FormData file object.
+
+In app/(tabs)/profile.tsx (Add Photo flow):
+- For iOS/Android, use:
+  formData.append('file', {
+    uri: selectedImageUri,
+    name: `photo_${Date.now()}.jpg`,
+    type: 'image/jpeg',
+  } as any);
+
+- Ensure selectedImageUri includes the correct "file://" prefix where required.
+- Use fetch with credentials: "include" consistently.
+- Add robust error messages for:
+  - missing permissions
+  - user cancels picker
+  - network timeout
+  - server returns non-OK response
+
+B) IMAGE COMPRESSION BEFORE UPLOAD (HIGH IMPACT)
+To improve speed + reliability on cellular:
+- Add expo-image-manipulator
+- Before uploading, resize longest side to ~1600px and compress JPEG quality ~0.75
+- Use the manipulated URI for upload.
+
+C) UPLOAD UX IMPROVEMENTS
+- Show an upload progress indicator (at least a modal spinner with “Uploading…”).
+- Disable the submit button during upload.
+- After success, immediately refresh portfolio query and show the new image.
+
+D) SERVER-SIDE UPLOAD HARDENING
+In server/routes.ts:
+- Confirm multer max size remains 10MB.
+- Validate mime types (already present).
+- Return absolute URL for uploads in production:
+  - If EXPO_PUBLIC_API_URL is set, return `${EXPO_PUBLIC_API_URL}${url}`
+  - Otherwise return relative `/uploads/...`
+This prevents clients from rendering broken relative URLs in some environments.
+
+E) DOCUMENTATION (MUST)
+Add README.md at repo root with:
+- required env vars (DATABASE_URL, SESSION_SECRET, ADMIN_KEY, EXPO_PUBLIC_API_URL)
+- how to run locally
+- how to run on Replit
+- how uploads work
+- how to seed safely (admin key in production)
+
+Add QA_CHECKLIST.md with:
+- login/register/logout
+- session persists after app restart
+- join event as creator set maxBookings
+- add portfolio photo from iOS + Android (real upload)
+- portfolio displays on public profile
+- add external video link
+- create/edit/delete packages
+- booking request + accept updates availability
+- messages update without heavy polling
+
+ACCEPTANCE CRITERIA:
+- Photo upload works on physical iOS and Android devices.
+- Uploads are compressed and feel fast.
+- README.md and QA_CHECKLIST.md exist and are accurate.
+- No new features beyond the scope above.

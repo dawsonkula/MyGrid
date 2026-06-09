@@ -1,0 +1,220 @@
+You are a senior product engineer focused on marketplace conversion optimization.
+
+Goal: increase booking completion rate and user confidence in MyGrid.
+
+Do NOT add subscriptions.
+Do NOT add social feed features.
+Do NOT add unrelated functionality.
+
+Focus ONLY on improving:
+- booking decision clarity
+- payment confidence
+- event → creator → booking conversion
+- delivery satisfaction messaging
+
+------------------------------------------------------------
+A) BOOKING REVIEW STEP (CRITICAL)
+------------------------------------------------------------
+
+Add a required “Booking Review” step before final submission.
+
+Flow:
+1. User selects creator + package
+2. User enters notes (optional)
+3. BEFORE submission → show Booking Review screen
+
+Booking Review screen must show:
+
+- Event name
+- Creator name
+- Package name
+- Package description (short)
+- Event date
+
+Pricing breakdown:
+- Package Price: $XXX
+- MyGrid Fee: $XX
+- Total: $XXX
+
+Add clear confirmation message:
+“You are requesting this creator for this event.”
+
+CTA:
+- Primary button: “Request Booking”
+- Secondary: “Back”
+
+Important:
+- All pricing must come from server-calculated values (not client input)
+- Prevent submission until review step is completed
+
+------------------------------------------------------------
+B) PAYMENT CLARITY (TRUST BUILDER)
+------------------------------------------------------------
+
+Add clear messaging in booking flow and booking detail:
+
+If payment is NOT immediate:
+Display:
+“You will not be charged until the creator accepts your request.”
+
+If payment is required later:
+Display:
+“Payment is required after booking is accepted.”
+
+This message must appear:
+- On Booking Review screen
+- On Booking Detail screen (until paid)
+
+Goal:
+Remove hesitation and confusion about money.
+
+------------------------------------------------------------
+C) EVENT → CREATOR CONVERSION BOOST
+------------------------------------------------------------
+
+Upgrade Event Detail page to drive bookings.
+
+Add section:
+“Media Creators Attending”
+
+Each creator card must include:
+- Profile image
+- Display name
+- Creator tags (photo/video/etc)
+- Availability badge
+- Starting price (lowest package)
+- Buttons:
+  - “View Profile”
+  - “Book”
+
+Behavior:
+- “Book” button opens booking flow with:
+  - eventId pre-filled
+  - creatorId pre-filled
+
+- “View Profile” navigates to creator profile
+
+Acceptance:
+User can go:
+Event → Creator → Booking flow in 2 taps
+
+------------------------------------------------------------
+D) CREATOR TRUST SIGNALS (LIGHTWEIGHT)
+------------------------------------------------------------
+
+Add visible trust indicators on creator profile:
+
+If data exists:
+- “X events attending”
+- “X bookings completed”
+- “X portfolio items”
+
+If real data is not yet available:
+- Allow seeded/test values (clearly marked in code comments)
+
+Display as small stat row under profile header.
+
+Goal:
+Increase confidence in hiring decision.
+
+------------------------------------------------------------
+E) DELIVERY EXPERIENCE (EMOTIONAL UPGRADE)
+------------------------------------------------------------
+
+Improve delivery UX messaging.
+
+Replace generic labels with stronger language:
+
+Instead of:
+“Delivery uploaded”
+
+Use:
+“Your footage is ready”
+
+Add clear action button:
+“Approve & Complete Booking”
+
+Add option:
+“Request Revision”
+
+When approved:
+- Update booking status → completed
+- Show confirmation message:
+“Booking completed successfully”
+
+Goal:
+Make delivery feel like a reward moment.
+
+------------------------------------------------------------
+F) BOOKING DETAIL PAGE IMPROVEMENTS
+------------------------------------------------------------
+
+Enhance booking detail page clarity.
+
+Add sections:
+
+1) Booking Summary
+- Event
+- Creator
+- Package
+- Date
+- Status
+
+2) Payment Summary
+- Package price
+- Platform fee
+- Total
+- Payment status
+
+3) Delivery Section
+- Delivered items
+- Status
+- Approve button
+- Revision request
+
+4) Actions
+Driver:
+- Cancel request (if pending)
+- Approve delivery
+- Request revision
+
+Creator:
+- Accept/decline
+- Mark in progress
+- Add delivery
+
+------------------------------------------------------------
+G) UX POLISH (IMPORTANT)
+------------------------------------------------------------
+
+- Primary CTAs must stand out visually
+- Avoid clutter
+- Maintain consistent spacing and hierarchy
+- Ensure fast navigation between:
+  Event → Creator → Booking
+
+------------------------------------------------------------
+H) QA CHECKLIST UPDATE
+------------------------------------------------------------
+
+Add tests for:
+
+- Booking review step is required before submission
+- Pricing breakdown is correct
+- Payment messaging is visible
+- Event → creator → booking flow works
+- Delivery approval updates status correctly
+- Revision flow works
+- Users cannot approve or modify other users’ bookings
+
+------------------------------------------------------------
+ACCEPTANCE CRITERIA
+------------------------------------------------------------
+
+1. Booking review screen exists and is required.
+2. Users clearly understand when they are charged.
+3. Event page drives users directly to creators and booking.
+4. Creator profiles show trust indicators.
+5. Delivery flow feels complete and satisfying.
+6. Booking detail page clearly shows all important information.
+7. No new unrelated features added.

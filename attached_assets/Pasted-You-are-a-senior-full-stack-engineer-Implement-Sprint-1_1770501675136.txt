@@ -1,0 +1,164 @@
+You are a senior full-stack engineer. Implement “Sprint 1” UX upgrades for MyGrid with a strict focus on the booking marketplace (events → portfolios → bookings). DO NOT build a social feed, likes, comments, follows, shares, or any public posting system in this sprint.
+
+CURRENT STACK (KEEP):
+- Expo / React Native (expo-router)
+- Express API + Postgres + Drizzle
+- Cloudinary signed uploads
+- React Query caching + refresh-on-focus
+- Session cookie auth
+
+TOP GOALS (SPRINT 1):
+1) Event thumbnails/banners displayed throughout event browsing
+2) Change profile picture by tapping the avatar + add an explicit Edit Profile button
+3) Support “both” identities: users can enable Driver + Creator profiles and showcase both via tabs
+4) Add a pre-login landing screen that showcases the app while locking functionality behind auth
+
+------------------------------------------------------------
+A) EVENT THUMBNAILS / BANNERS (MUST)
+------------------------------------------------------------
+
+1) Database:
+- Add a nullable field to Events table: `bannerImageUrl` (or `thumbnailUrl`).
+- Create migration / drizzle update accordingly.
+
+2) API:
+- Extend event create/update endpoints to accept `bannerImageUrl`.
+- Add an endpoint for uploading an event banner to Cloudinary (reuse existing signature endpoint).
+  - Prefer: client uploads to Cloudinary with signed payload, then saves URL on event.
+- Ensure event list and event detail responses include `bannerImageUrl`.
+
+3) Client UI:
+- Events list: show a small thumbnail/banner for each event in the card.
+  - If none: display a default motorsports placeholder image or gradient block.
+- Event detail: show banner at top if present.
+
+4) Event creation/edit UX:
+- If there is a create-event flow, add “Add Event Banner”:
+  - Choose image -> compress -> signed upload -> save banner URL.
+- If no UI exists, minimally support it via an edit screen or admin-only toggle (keep scope minimal).
+
+------------------------------------------------------------
+B) PROFILE PICTURE TAP-TO-CHANGE + EDIT PROFILE BUTTON (MUST)
+------------------------------------------------------------
+
+1) UX behavior:
+- On the user’s OWN profile screen:
+  - Tapping the avatar opens an ActionSheet/Modal:
+    - “Change Profile Photo”
+    - “Remove Photo” (optional)
+    - “Cancel”
+- Add a clear “Edit Profile” button on own profile (near top).
+- On OTHER users’ profiles: avatar is not clickable and no edit button appears.
+
+2) Implementation:
+- Use existing Cloudinary upload flow:
+  - Pick -> compress -> upload -> save URL
+- Store profile photo URL on user table (if not already).
+- Ensure React Query invalidates/refetches profile data after change.
+
+------------------------------------------------------------
+C) DUAL-ROLE PROFILES (MUST)
+------------------------------------------------------------
+
+We want users to be able to act as both Driver and Creator and showcase both. This is NOT the social feed. This is profile structure only.
+
+1) Data model changes:
+- Keep the existing “primary profile type” but add flags:
+  - `isDriverEnabled` boolean
+  - `isCreatorEnabled` boolean
+- Add separate optional sub-profile fields:
+  Driver fields (examples):
+    - driverBio (can reuse bio if you prefer)
+    - cars (string or json)
+    - driverSocialLinks (reuse social links if shared)
+  Creator fields:
+    - creatorBio (optional)
+    - creatorTags (photo/video/drone/etc) if you already support
+    - packages already exist
+    - portfolio already exists
+- If you already have a unified profile schema, implement this as minimally as possible.
+
+2) Settings / enablement UI:
+- In Edit Profile (or a Settings section), add toggles:
+  - “Enable Driver Profile”
+  - “Enable Creator Profile”
+- If a user enables a role, show the relevant tab and fields.
+
+3) Profile UI:
+- On profile screen, show tabs/pills:
+  - Driver
+  - Creator
+- Driver tab shows:
+  - driver-specific fields (cars, driver bio, driver socials)
+  - driver portfolio can reuse the existing portfolio system OR show a “Driving” section (minimal)
+- Creator tab shows:
+  - portfolio grid + external video links
+  - packages list
+- For users who only have one role enabled:
+  - show that role’s content without tabs (clean UX)
+
+4) Compatibility:
+- Attendance roles per event remain as-is (Driver / Creator / Both). This sprint does not change attendance logic.
+
+------------------------------------------------------------
+D) PRE-LOGIN LANDING SCREEN (MUST)
+------------------------------------------------------------
+
+Add a landing page before login that markets the app lightly and improves trust.
+
+1) Routing:
+- New route: app/(public)/landing.tsx (or similar)
+- Default app entry should go:
+  - If authenticated -> tabs
+  - If not authenticated -> landing (NOT login)
+
+2) Landing content:
+- App name + tagline
+- “How it works” in 3 steps:
+  1) Pick your event
+  2) See who’s shooting
+  3) Book before the event
+- Showcase content (non-sensitive):
+  - Example/featured events list (limited)
+  - Example/featured creators (blurred/locked cards or placeholder)
+- Clear CTAs:
+  - “Create account”
+  - “Log in”
+
+3) Access control:
+- Users cannot view full event attendees, profiles, or messaging without auth.
+- Landing can show partial teaser cards only.
+
+------------------------------------------------------------
+E) PERFORMANCE + QUALITY (MUST)
+------------------------------------------------------------
+
+- Reuse existing React Query caching patterns.
+- Ensure new image loads are efficient (expo-image if available).
+- Add loading and error states for event thumbnails and profile avatar changes.
+- Update README + QA checklist to include new flows:
+  - changing avatar via tap
+  - enabling both roles and switching tabs
+  - event banner upload and display
+  - landing screen gating
+
+------------------------------------------------------------
+EXPLICITLY OUT OF SCOPE (DO NOT BUILD)
+------------------------------------------------------------
+
+- No social feed tab
+- No likes/comments/shares/following
+- No public posting system
+- No view counts in this sprint
+- No payments work
+
+------------------------------------------------------------
+ACCEPTANCE CRITERIA
+------------------------------------------------------------
+
+1) Events list + event detail display event banners/thumbnails with fallback placeholder.
+2) User can change their avatar by tapping it; profile updates immediately.
+3) Users can enable Driver + Creator profiles and switch via tabs; both sections display correctly.
+4) App opens to a landing screen when logged out; full features are gated behind auth.
+5) No feed or social features added.
+6) README + QA checklist updated.

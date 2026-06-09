@@ -1,0 +1,79 @@
+You are a senior payments engineer. Perform a Stripe Connect hardening pass for MyGrid. Do NOT add new features. Focus only on payment safety, correctness, and live-readiness.
+
+A) BLOCK CREATOR ACCEPTANCE UNTIL STRIPE READY
+When a creator tries to accept a booking:
+- In production, block acceptance unless creator has:
+  - stripeAccountId
+  - stripeChargesEnabled=true
+  - stripePayoutsEnabled=true
+- Return a clear error:
+  “Set up payouts before accepting paid bookings.”
+- In development/test mode, allow only with a clear warning.
+
+B) WEBHOOK IDEMPOTENCY
+Add a table/model for processed Stripe events:
+- id
+- stripeEventId unique
+- eventType
+- processedAt
+- createdAt
+
+Before handling any webhook:
+- Check if stripeEventId already exists.
+- If yes, return success without processing again.
+- If no, process event, then store stripeEventId.
+
+C) SAVE STRIPE PAYMENT IDENTIFIERS PROPERLY
+On checkout.session.completed:
+- Retrieve the PaymentIntent if needed.
+- Save:
+  - stripePaymentIntentId
+  - stripeChargeId from latest_charge
+  - stripeApplicationFeeId if available
+  - stripeTransferId if available
+- Update transaction paymentStatus=paid.
+- Update booking status=in_progress.
+
+On payment_intent.succeeded:
+- Save latest_charge as stripeChargeId.
+- Confirm paymentStatus=paid.
+- Confirm booking status=in_progress.
+
+D) FIX DISPUTE LOOKUP
+For charge.dispute.created:
+- Lookup transaction using stripeChargeId.
+- If missing, attempt lookup through payment intent if available.
+- Update transaction paymentStatus=disputed.
+- Update booking status=disputed.
+
+E) REMOVE UNSAFE DEV CHECKOUT BEHAVIOR
+Do not create a checkout session without a connected creator Stripe account unless explicitly allowed by:
+ALLOW_STRIPE_UNCONNECTED_TEST_CHECKOUT=true
+
+Default must be false.
+
+F) CLEAN CANCEL UNPAID LOGIC
+Fix cancel-unpaid route:
+- Do not call forceCompleteBooking.
+- Only set booking status=cancelled.
+- Only allow if booking is requested, accepted, or payment_pending.
+- If a transaction exists and paymentStatus is not_started/pending/failed, mark it cancelled or leave safely documented.
+
+G) README + QA
+Update README and QA_CHECKLIST with:
+- Stripe test mode setup
+- Creator payout setup required before accepting
+- Webhook idempotency test
+- Test card checkout
+- Dispute/refund behavior notes
+- Production safety settings:
+  NODE_ENV=production
+  ALLOW_STRIPE_UNCONNECTED_TEST_CHECKOUT=false
+
+Acceptance criteria:
+1. Duplicate webhook events do not double-process.
+2. Creator cannot accept paid booking in production without Stripe setup complete.
+3. PaymentIntent, charge, application fee, and transfer IDs are saved when available.
+4. Disputes can be mapped back to transactions.
+5. No checkout can happen without connected creator account unless explicitly enabled for test mode.
+6. Cancel unpaid no longer touches completed status.

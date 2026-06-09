@@ -1,0 +1,298 @@
+You are a senior marketplace payments engineer implementing Stripe Connect for MyGrid.
+
+Goal: implement real payments and creator payouts using Stripe Connect Express, with MyGrid taking a platform fee per booking.
+
+Use Stripe TEST MODE first. Do not use live mode until explicitly configured.
+
+IMPORTANT STRIPE MODEL:
+- Use Stripe Connect Express accounts for creators.
+- Use Stripe Checkout or PaymentIntents with destination charges.
+- MyGrid collects a platform fee using application_fee_amount.
+- Funds go to the creator’s connected Stripe account using transfer_data.destination.
+- Use webhooks as the source of truth for payment status.
+- Never trust payment status from the client.
+
+Do NOT add subscriptions.
+Do NOT add social feed features.
+
+------------------------------------------------------------
+A) ENVIRONMENT VARIABLES
+------------------------------------------------------------
+
+Add/update env vars:
+
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_CONNECT_CLIENT_ID=
+STRIPE_PUBLISHABLE_KEY=
+PLATFORM_FEE_PERCENT=10
+CLIENT_APP_URL=
+
+Update .env.example and README.
+
+------------------------------------------------------------
+B) DATABASE UPDATES
+------------------------------------------------------------
+
+Add creator Stripe fields to users table:
+
+- stripeAccountId nullable
+- stripeChargesEnabled boolean default false
+- stripePayoutsEnabled boolean default false
+- stripeDetailsSubmitted boolean default false
+
+Ensure transactions table supports:
+
+- stripeCheckoutSessionId nullable
+- stripePaymentIntentId nullable
+- stripeChargeId nullable
+- stripeTransferId nullable
+- stripeApplicationFeeId nullable
+- grossAmount
+- platformFeeAmount
+- creatorPayoutAmount
+- currency
+- paymentStatus
+- payoutStatus
+
+Payment statuses:
+- not_started
+- pending
+- paid
+- failed
+- refunded
+- partially_refunded
+- disputed
+
+Payout statuses:
+- not_started
+- pending
+- paid
+- failed
+- held
+
+------------------------------------------------------------
+C) CREATOR STRIPE ONBOARDING
+------------------------------------------------------------
+
+Add API endpoint:
+
+POST /api/stripe/connect/onboard
+
+Behavior:
+- Auth required.
+- User must have creator profile enabled.
+- If user does not have stripeAccountId:
+  - create Stripe Express connected account.
+  - save stripeAccountId to user.
+- Create Stripe account onboarding link.
+- Return onboarding URL to client.
+
+Add API endpoint:
+
+GET /api/stripe/connect/status
+
+Behavior:
+- Auth required.
+- Retrieve connected account from Stripe.
+- Update user:
+  - stripeChargesEnabled
+  - stripePayoutsEnabled
+  - stripeDetailsSubmitted
+- Return status to client.
+
+Client UI:
+- On creator profile/settings, show “Set up payouts” if not onboarded.
+- Show payout status:
+  - Not started
+  - In review
+  - Ready to receive payments
+- Creator cannot accept paid bookings until chargesEnabled is true.
+
+Important:
+- Do not email or text Stripe onboarding links. Show them only to authenticated users inside the app.
+
+------------------------------------------------------------
+D) PAYMENT CHECKOUT FLOW
+------------------------------------------------------------
+
+Payment should happen AFTER creator accepts booking.
+
+Booking lifecycle:
+1. Driver requests booking
+2. Creator accepts
+3. Booking status becomes payment_pending
+4. Driver pays
+5. Webhook marks transaction paid and booking paid/in_progress
+6. Creator delivers footage
+7. Driver approves/completes booking
+
+Add API endpoint:
+
+POST /api/bookings/:bookingId/create-checkout-session
+
+Behavior:
+- Auth required.
+- Only assigned driver can create checkout session.
+- Booking must be accepted or payment_pending.
+- Creator must have stripeAccountId and charges enabled.
+- Server calculates all amounts:
+  - package price snapshot
+  - platform fee
+  - creator payout
+- Create Stripe Checkout Session in payment mode.
+- Use destination charge:
+  - payment_intent_data.application_fee_amount = platformFeeAmount
+  - payment_intent_data.transfer_data.destination = creatorStripeAccountId
+- Add metadata:
+  - bookingId
+  - transactionId
+  - driverId
+  - creatorId
+  - eventId
+- Save stripeCheckoutSessionId and paymentStatus=pending.
+- Return checkout URL.
+
+Client UI:
+- Booking Detail shows “Pay Now” only for assigned driver when status is payment_pending.
+- Pressing “Pay Now” opens Stripe Checkout URL.
+- After return, app should refresh booking detail.
+- Do not mark paid from client return URL; wait for webhook.
+
+------------------------------------------------------------
+E) STRIPE WEBHOOKS
+------------------------------------------------------------
+
+Add endpoint:
+
+POST /api/stripe/webhook
+
+Requirements:
+- Use raw body parsing for this route.
+- Verify Stripe signature with STRIPE_WEBHOOK_SECRET.
+- If signature invalid, reject request.
+- Webhook is source of truth.
+
+Handle events:
+1. checkout.session.completed
+   - Find transaction by stripeCheckoutSessionId or metadata.transactionId.
+   - Store stripePaymentIntentId.
+   - Mark paymentStatus=paid.
+   - Update booking status=paid or in_progress.
+
+2. payment_intent.succeeded
+   - Confirm paid state if metadata matches booking/transaction.
+
+3. payment_intent.payment_failed
+   - Mark paymentStatus=failed.
+   - Booking remains payment_pending.
+
+4. charge.refunded
+   - Mark refunded or partially_refunded.
+
+5. charge.dispute.created
+   - Mark paymentStatus=disputed.
+   - Booking status=disputed.
+
+6. account.updated
+   - If event is for connected account, update user Stripe status:
+     - charges_enabled
+     - payouts_enabled
+     - details_submitted
+
+Important:
+- Stripe recommends webhooks for post-payment events, not trusting redirect/callback alone.
+- Add idempotency protection so duplicate webhook events do not double-update records.
+- Store received Stripe event IDs if needed.
+
+------------------------------------------------------------
+F) PAYMENT / PAYOUT UI
+------------------------------------------------------------
+
+Booking Detail:
+- Show payment summary:
+  - Package price
+  - MyGrid fee
+  - Creator receives
+  - Payment status
+- If driver and payment_pending:
+  - show Pay Now button.
+- If creator and not payout-ready:
+  - show warning: “Set up payouts before accepting paid bookings.”
+
+Creator booking actions:
+- Creator can accept booking only if:
+  - creator has payout setup complete
+  - OR app is in test/dev mode with explicit warning
+
+Driver payment messaging:
+- “You are paying securely through Stripe.”
+- “Payment is required after the creator accepts.”
+- “MyGrid holds the booking record and delivery approval in-app.”
+
+------------------------------------------------------------
+G) REFUNDS / CANCELLATIONS FOUNDATION
+------------------------------------------------------------
+
+Do not build complex refund UI yet.
+
+Add backend-safe placeholder endpoints or TODO structure for:
+- cancel unpaid booking
+- refund paid booking by admin only
+- disputed booking handling
+
+Important:
+- Do not let normal users trigger arbitrary refunds yet.
+- Document that refunds/disputes are admin-managed for alpha/beta.
+
+------------------------------------------------------------
+H) SECURITY REQUIREMENTS
+------------------------------------------------------------
+
+- Never send STRIPE_SECRET_KEY to client.
+- Never calculate fee/payout amounts on client.
+- Never let client provide platformFeeAmount or creatorPayoutAmount.
+- Verify user owns booking before creating checkout session.
+- Verify creator is assigned to booking before accepting.
+- Verify creator connected account is ready before allowing payment.
+- Verify webhooks using Stripe signature.
+- Ensure checkout sessions cannot be created for another driver’s booking.
+
+------------------------------------------------------------
+I) TEST MODE REQUIREMENTS
+------------------------------------------------------------
+
+Add clear test-mode guidance in README:
+- Use Stripe test keys only.
+- Use Stripe test card 4242 4242 4242 4242.
+- Complete creator onboarding with Stripe test onboarding.
+- Confirm webhook events update booking/transaction statuses.
+
+Update QA_CHECKLIST.md:
+- Creator onboarding creates connected account.
+- Creator status updates after onboarding.
+- Creator cannot accept paid bookings if payouts not ready.
+- Driver requests booking.
+- Creator accepts booking.
+- Driver sees Pay Now.
+- Stripe Checkout opens.
+- Test card payment succeeds.
+- Webhook marks transaction paid.
+- Booking moves to paid/in_progress.
+- Delivery flow still works after payment.
+- Unauthorized users cannot create checkout sessions.
+
+------------------------------------------------------------
+ACCEPTANCE CRITERIA
+------------------------------------------------------------
+
+1. Creators can onboard to Stripe Connect Express.
+2. Creator Stripe status is stored and displayed.
+3. Drivers can pay accepted bookings through Stripe Checkout.
+4. MyGrid platform fee is collected using application_fee_amount.
+5. Creator receives payout via connected Stripe account using destination charge.
+6. Webhooks update transaction and booking status.
+7. Client never controls payment status or fee math.
+8. App remains in Stripe test mode until live keys are provided.
+9. No subscriptions are added.
+10. No social feed features are added.

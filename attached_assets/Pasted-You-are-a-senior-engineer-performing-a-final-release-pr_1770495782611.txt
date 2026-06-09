@@ -1,0 +1,97 @@
+You are a senior engineer performing a final release-prep and hygiene pass for MyGrid V6. 
+Do NOT add new features, refactor business logic, or change behavior. 
+This task is strictly about cleanliness, configuration accuracy, and export readiness.
+
+------------------------------------------------------------
+A) REMOVE UNWANTED WORKSPACE FOLDERS (MUST)
+------------------------------------------------------------
+
+Ensure the following directories are NOT present inside the project directory (delete them if they exist):
+
+- .expo/
+- .config/
+- .git/
+- node_modules/
+- uploads/ (local uploads should not be committed or exported)
+
+These folders should not appear in ZIP exports or repository snapshots.
+
+------------------------------------------------------------
+B) .gitignore VALIDATION (MUST)
+------------------------------------------------------------
+
+Confirm .gitignore includes and correctly excludes:
+
+.expo/
+.config/
+.git/
+node_modules/
+dist/
+build/
+uploads/
+.env
+*.log
+
+Do not remove any existing ignore rules that are still relevant.
+
+------------------------------------------------------------
+C) ENV TEMPLATE COMPLETENESS (MUST)
+------------------------------------------------------------
+
+Update `.env.example` so it fully matches what the app expects in production and beta.
+
+It must include (with placeholder values):
+
+DATABASE_URL=
+SESSION_SECRET=
+ADMIN_KEY=
+NODE_ENV=
+
+# Cloudinary (required for beta/prod)
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+# Upload behavior
+ALLOW_LOCAL_UPLOAD_FALLBACK=false
+
+# Client / API configuration
+EXPO_PUBLIC_API_URL=
+
+------------------------------------------------------------
+D) README CONSISTENCY CHECK (MUST)
+------------------------------------------------------------
+
+Verify README.md accurately reflects:
+
+- Cloudinary is the required upload mechanism for beta/production
+- Local upload fallback is disabled by default in production
+- ALLOW_LOCAL_UPLOAD_FALLBACK is for development only
+- EXPO_PUBLIC_API_URL must be set for mobile builds
+- ZIP exports / deployments should not include ignored folders
+
+Make small wording corrections only if needed.
+
+------------------------------------------------------------
+E) OPTIONAL (NICE-TO-HAVE): RELEASE EXPORT SCRIPT
+------------------------------------------------------------
+
+If appropriate, add a simple npm script such as:
+
+"scripts": {
+  "release:zip": "zip -r mygrid-release.zip . -x 'node_modules/*' '.git/*' '.expo/*' '.config/*' 'uploads/*' '.env'"
+}
+
+This is optional but helps produce clean release artifacts.
+
+------------------------------------------------------------
+ACCEPTANCE CRITERIA
+------------------------------------------------------------
+
+- Project directory does not contain .expo/, .config/, .git/, or uploads/
+- .gitignore excludes all unwanted folders
+- .env.example includes all required environment variables
+- README.md and .env.example are consistent
+- App behavior is unchanged
+
+Complete these tasks and do not modify any other functionality.

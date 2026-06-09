@@ -1,0 +1,297 @@
+You are a senior full-stack engineer building the MVP of a startup application called MyGrid.
+
+MyGrid is a mobile-first and web-compatible platform that connects motorsports drivers with photographers and videographers attending specific events, allowing drivers to view portfolios and book media creators directly.
+
+Your goal is to build a scalable, clean, and production-ready MVP foundation using modern best practices. DO NOT overbuild advanced features beyond the MVP requirements.
+
+---------------------------------------
+TECH STACK REQUIREMENTS
+---------------------------------------
+
+Frontend:
+- React Native using Expo (mobile-first)
+- Next.js for web compatibility
+- TypeScript required
+- Clean reusable component structure
+
+Backend:
+- Supabase (authentication + database + storage)
+- Supabase real-time messaging
+- Stripe integration placeholder (do not fully implement yet, only scaffold structure)
+
+UI:
+- Clean modern motorsports-inspired UI
+- Dark theme default
+- Responsive layout
+- Use reusable UI components
+
+Architecture:
+- Modular folder structure
+- Scalable service-based architecture
+- Maintain clear separation between UI, logic, and data services
+
+---------------------------------------
+CORE USER ROLES
+---------------------------------------
+
+Two account types:
+
+1. Driver
+2. Media Creator (Photographer, Videographer, Drone, Social Content)
+
+Users must select role during onboarding.
+
+---------------------------------------
+AUTHENTICATION
+---------------------------------------
+
+Implement:
+
+- Email sign up and login
+- Google OAuth login
+- Apple login placeholder
+- Role selection during signup
+- Profile creation wizard after signup
+
+---------------------------------------
+DATABASE STRUCTURE
+---------------------------------------
+
+Create Supabase schema with relationships for:
+
+Users:
+- id
+- role
+- display_name
+- bio
+- profile_image
+- location
+- social_links
+
+Events:
+- id
+- name
+- location
+- venue
+- date_start
+- date_end
+- banner_image
+
+Attendance:
+- id
+- user_id
+- event_id
+- role
+
+Portfolio Media:
+- id
+- user_id
+- media_url
+- media_type (photo or video)
+
+Packages (Media creators only):
+- id
+- creator_id
+- title
+- description
+- price
+
+Bookings:
+- id
+- driver_id
+- creator_id
+- event_id
+- package_id
+- notes
+- status (requested, accepted, declined, completed)
+
+Messages:
+- id
+- sender_id
+- receiver_id
+- booking_id (optional)
+- message_text
+- timestamp
+
+---------------------------------------
+APP NAVIGATION STRUCTURE
+---------------------------------------
+
+Create bottom tab navigation with:
+
+1. Home
+2. Events
+3. Messages
+4. Bookings
+5. Profile
+
+---------------------------------------
+SCREEN REQUIREMENTS
+---------------------------------------
+
+ONBOARDING FLOW
+
+Splash Screen
+Welcome Screen (Login / Sign Up)
+Role Selection Screen
+Profile Setup Wizard
+
+Driver Setup Fields:
+- Bio
+- Car info
+- Social links
+- Portfolio upload
+
+Media Creator Setup Fields:
+- Media type selection
+- Portfolio upload
+- Pricing package creation
+- Travel availability toggle
+
+---------------------------------------
+HOME SCREEN
+---------------------------------------
+
+Display:
+
+- Upcoming events user is attending
+- Pending booking requests
+- Quick navigation cards
+
+---------------------------------------
+EVENT SYSTEM
+---------------------------------------
+
+Events List Screen:
+- Search events
+- Filter by location and date
+- Create event button
+
+Event Detail Screen:
+- Event information
+- Drivers attending list
+- Media attending list
+- Join event button
+- Profile links for attendees
+
+---------------------------------------
+PROFILE SYSTEM
+---------------------------------------
+
+Profile View:
+- Bio
+- Portfolio gallery
+- Social links
+- Events attending
+- Booking button (for creators)
+- Messaging button
+
+Profile Edit:
+- Update profile details
+- Upload media
+- Manage packages (creators only)
+- Manage attending events
+
+---------------------------------------
+BOOKING SYSTEM
+---------------------------------------
+
+Booking Creation Flow:
+Driver selects:
+- Creator
+- Event
+- Package
+- Notes
+
+Booking Dashboard:
+- Pending
+- Accepted
+- Completed
+- Declined
+
+Creator must be able to:
+- Accept or decline bookings
+- View booking details
+- Message driver
+
+---------------------------------------
+MESSAGING SYSTEM
+---------------------------------------
+
+Implement real-time 1-on-1 chat using Supabase.
+
+Messaging must be accessible from:
+- Profile pages
+- Booking pages
+- Event attendee lists
+
+---------------------------------------
+NOTIFICATIONS
+---------------------------------------
+
+Implement basic push notification scaffolding for:
+- New booking request
+- Booking status change
+- New messages
+- Event reminders
+
+---------------------------------------
+FILE STORAGE
+---------------------------------------
+
+Use Supabase storage for:
+- Profile images
+- Portfolio uploads
+- Event banners
+
+---------------------------------------
+UI AND UX REQUIREMENTS
+---------------------------------------
+
+- Dark theme motorsports aesthetic
+- Fast loading image gallery
+- Simple booking flow
+- Clean card-based event layout
+- Mobile-first responsive design
+
+---------------------------------------
+DEVELOPMENT REQUIREMENTS
+---------------------------------------
+
+- Use TypeScript throughout
+- Create reusable hooks and services
+- Use environment variables for keys
+- Include clear README documentation
+- Use clean naming conventions
+- Avoid hardcoding data
+- Include placeholder data where needed
+
+---------------------------------------
+MVP LIMITATIONS
+---------------------------------------
+
+DO NOT implement:
+
+- Full Stripe payments (only placeholder service)
+- Ratings and reviews
+- AI tagging
+- Team accounts
+- Advanced analytics
+- Organizer accounts
+
+---------------------------------------
+OUTPUT REQUIREMENTS
+---------------------------------------
+
+Provide:
+
+1. Full project folder structure
+2. Supabase schema setup instructions
+3. Running instructions
+4. Deployment recommendations
+5. Clear commenting throughout code
+6. Sample seed data
+
+---------------------------------------
+
+The application should be ready for MVP beta testing with real users after completion.

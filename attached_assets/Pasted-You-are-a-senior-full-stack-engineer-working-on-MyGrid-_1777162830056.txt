@@ -1,0 +1,97 @@
+You are a senior full-stack engineer working on MyGrid.
+
+Your task is to improve the event system quality, consistency, and scalability without changing core app behavior.
+
+------------------------------------------------------------
+A) EVENT DATA STANDARDIZATION (MUST)
+------------------------------------------------------------
+
+1. Normalize event naming format:
+
+All events should follow:
+[Host] – [Event Name] – [City or Track]
+
+Examples:
+- Gridlife – Midwest Festival – Gingerman Raceway
+- ClubLoose – Final Bout – Englishtown
+
+If existing events are inconsistent, update them safely.
+
+------------------------------------------------------------
+B) ADD HOST FIELD VISIBILITY (MUST)
+------------------------------------------------------------
+
+Ensure the Events table includes:
+- host (string)
+
+Update:
+- API responses to include host
+- Event card UI to display:
+  "Hosted by {host}"
+
+------------------------------------------------------------
+C) ADD EVENT TYPE FIELD (MUST)
+------------------------------------------------------------
+
+Add a new field:
+- eventType (enum or string)
+
+Default values:
+- Drift Event
+- Competition
+- Track Day
+- Festival
+
+Update:
+- Database schema
+- Event creation flow (optional dropdown)
+- Display as a small tag/pill on event cards
+
+------------------------------------------------------------
+D) PREVENT DUPLICATE EVENTS (IMPORTANT)
+------------------------------------------------------------
+
+Before inserting a new event:
+
+Check if an event already exists with:
+- same name
+- same start date
+
+If match exists:
+- skip insertion OR update existing record instead
+
+Do not create duplicates.
+
+------------------------------------------------------------
+E) DEFAULT THUMBNAIL HANDLING (MUST)
+------------------------------------------------------------
+
+If event.bannerImage is null:
+
+Return a default placeholder image URL:
+- Use a constant DEFAULT_EVENT_IMAGE_URL
+
+Do NOT leave image empty on frontend.
+
+------------------------------------------------------------
+F) FEATURED EVENTS (OPTIONAL BUT RECOMMENDED)
+------------------------------------------------------------
+
+Add a simple boolean:
+- isFeatured
+
+Use this to:
+- show 2–5 high-quality events on landing page
+
+------------------------------------------------------------
+G) QA CHECKS
+------------------------------------------------------------
+
+Verify:
+- Events display correctly with host + date + location
+- No duplicate events exist
+- Placeholder image shows when no banner exists
+- Event cards are consistent in layout
+- Landing page still works with redacted data
+
+Do not modify unrelated features.
