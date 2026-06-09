@@ -715,4 +715,3 @@ const styles = StyleSheet.create({
   socialItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   socialText: { fontSize: 14, fontFamily: fonts.regular, color: Colors.dark.textSecondary },
 });
-                                                    
