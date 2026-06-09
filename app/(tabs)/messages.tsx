@@ -18,6 +18,7 @@ export default function MessagesScreen() {
     queryFn: getQueryFn({ on401: 'returnNull' }),
     refetchInterval: 30000,
     refetchOnWindowFocus: true,
+    select: (data) => data ?? [],
   });
 
   useFocusEffect(

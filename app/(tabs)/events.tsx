@@ -129,6 +129,7 @@ export default function EventsScreen() {
   const { data: events = [], isLoading, refetch } = useQuery<any[]>({
     queryKey: ['/api/events'],
     queryFn: getQueryFn({ on401: 'returnNull' }),
+    select: (data) => data ?? [],
   });
 
   const filteredEvents = search

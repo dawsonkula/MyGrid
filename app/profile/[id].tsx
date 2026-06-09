@@ -38,12 +38,14 @@ export default function ProfileViewScreen() {
     queryKey: ['/api/portfolio', id],
     queryFn: getQueryFn({ on401: 'returnNull' }),
     enabled: !!id,
+    select: (data) => data ?? [],
   });
 
   const { data: packages = [] } = useQuery<any[]>({
     queryKey: ['/api/packages', id],
     queryFn: getQueryFn({ on401: 'returnNull' }),
     enabled: !!id,
+    select: (data) => data ?? [],
   });
 
   const { data: upcomingEvents = [] } = useQuery<any[]>({
@@ -51,6 +53,7 @@ export default function ProfileViewScreen() {
     queryFn: getQueryFn({ on401: 'returnNull' }),
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
+    select: (data) => data ?? [],
   });
 
   useFocusEffect(
@@ -712,3 +715,4 @@ const styles = StyleSheet.create({
   socialItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   socialText: { fontSize: 14, fontFamily: fonts.regular, color: Colors.dark.textSecondary },
 });
+                                                    

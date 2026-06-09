@@ -63,6 +63,7 @@ export default function BookingDetailScreen() {
     queryKey: [`/api/bookings/${id}/deliveries`],
     queryFn: getQueryFn({ on401: 'returnNull' }),
     enabled: !!id,
+    select: (data) => data ?? [],
   });
 
   useFocusEffect(

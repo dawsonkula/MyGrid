@@ -31,12 +31,14 @@ export default function EventDetailScreen() {
     queryKey: [`/api/events/${id}/attendees`],
     queryFn: getQueryFn({ on401: 'returnNull' }),
     enabled: !!id,
+    select: (data) => data ?? [],
   });
 
   const { data: enrichedCreators = [], refetch: refetchCreators } = useQuery<any[]>({
     queryKey: [`/api/events/${id}/creators`],
     queryFn: getQueryFn({ on401: 'returnNull' }),
     enabled: !!id && !!user,
+    select: (data) => data ?? [],
   });
 
   useFocusEffect(
@@ -854,65 +856,4 @@ const styles = StyleSheet.create({
   creatorStartingPrice: {
     fontSize: 26,
     fontFamily: fonts.condensedBold,
-    color: Colors.dark.text,
-    lineHeight: 28,
-  },
-  creatorCardActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.md,
-  },
-  creatorMsgBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.sm,
-    backgroundColor: Colors.dark.surfaceHighlight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  creatorProfileBtn: {
-    flex: 1,
-    height: 36,
-    borderRadius: radius.sm,
-    backgroundColor: Colors.dark.surfaceHighlight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  creatorProfileBtnText: {
-    fontSize: 13,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.textSecondary,
-  },
-  creatorBookBtn: {
-    flex: 2,
-    height: 36,
-    borderRadius: radius.sm,
-    backgroundColor: Colors.dark.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  creatorBookBtnText: {
-    fontSize: 13,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.background,
-  },
-  selfCreatorNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-    paddingHorizontal: spacing.xs,
-  },
-  selfCreatorNoteText: {
-    fontSize: 12,
-    fontFamily: fonts.regular,
-    color: Colors.dark.textMuted,
-    fontStyle: 'italic',
-  },
-});
+  

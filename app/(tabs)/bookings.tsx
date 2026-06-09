@@ -25,6 +25,7 @@ export default function BookingsScreen() {
     queryFn: getQueryFn({ on401: 'returnNull' }),
     refetchOnWindowFocus: true,
     staleTime: 30 * 1000,
+    select: (data) => data ?? [],
   });
 
   useFocusEffect(

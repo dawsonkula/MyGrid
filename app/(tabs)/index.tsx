@@ -19,11 +19,13 @@ export default function HomeScreen() {
   const { data: myAttendance = [], isLoading: loadingAttendance } = useQuery<any[]>({
     queryKey: ['/api/attendance'],
     queryFn: getQueryFn({ on401: 'returnNull' }),
+    select: (data) => data ?? [],
   });
 
   const { data: myBookings = [], isLoading: loadingBookings } = useQuery<any[]>({
     queryKey: ['/api/bookings'],
     queryFn: getQueryFn({ on401: 'returnNull' }),
+    select: (data) => data ?? [],
   });
 
   const upcomingEvents = (myAttendance || []).filter((a: any) => {

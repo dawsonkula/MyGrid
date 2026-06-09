@@ -31,6 +31,7 @@ export default function ChatScreen() {
     enabled: !!otherUserId,
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
+    select: (data) => data ?? [],
   });
 
   const handleSend = async () => {

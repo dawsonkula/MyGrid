@@ -37,11 +37,13 @@ export default function CreateBookingScreen() {
     queryKey: ['/api/packages', creatorId],
     queryFn: getQueryFn({ on401: 'returnNull' }),
     enabled: !!creatorId,
+    select: (data) => data ?? [],
   });
 
   const { data: events = [] } = useQuery<any[]>({
     queryKey: ['/api/events'],
     queryFn: getQueryFn({ on401: 'returnNull' }),
+    select: (data) => data ?? [],
   });
 
   const selectedEvent = events.find((e: any) => e.id === selectedEventId);
