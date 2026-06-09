@@ -53,6 +53,16 @@ export default function HomeScreen() {
 
   const completedCount = myBookings.filter((b: any) => b.status === 'completed').length;
 
+  // Events stat: creators count unique events from bookings (they're hired, not attendees)
+  // Drivers count their attendance records
+  const eventsCount = isCreator
+    ? new Set(
+        myBookings
+          .filter((b: any) => ['accepted', 'in_progress', 'completed'].includes(b.status) && b.eventId)
+          .map((b: any) => b.eventId)
+      ).size
+    : myAttendance.length;
+
   const greeting = (() => {
     const h = new Date().getHours();
     if (h < 12) return 'Good morning';
@@ -100,7 +110,7 @@ export default function HomeScreen() {
         {/* ── Stats Bar ── */}
         <View style={styles.statsRow}>
           <StatCard
-            value={myAttendance.length}
+            value={eventsCount}
             label="Events"
             icon="flag"
             color={Colors.dark.primary}
