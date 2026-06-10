@@ -6,6 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getQueryFn, queryClient } from '@/lib/query-client';
 import Colors from '@/constants/colors';
 import { fonts, spacing, radius, webTopInset } from '@/constants/theme';
@@ -31,23 +32,34 @@ export default function MessagesScreen() {
 
   return (
     <View style={styles.container}>
+      {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: topPadding + spacing.lg }]}>
         <Text style={styles.headerTitle}>Messages</Text>
+        {conversations.length > 0 && (
+          <Text style={styles.headerCount}>{conversations.length}</Text>
+        )}
       </View>
 
       {isLoading ? (
-        <ActivityIndicator color={Colors.dark.primary} style={{ marginTop: 40 }} />
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color={Colors.dark.primary} size="large" />
+        </View>
       ) : (
         <FlatList
           data={conversations}
           keyExtractor={(item) => item.otherUser.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="chatbubble-outline" size={48} color={Colors.dark.textMuted} />
-              <Text style={styles.emptyTitle}>No messages yet</Text>
-              <Text style={styles.emptySubtitle}>Start a conversation from a profile or booking</Text>
+              <View style={styles.emptyIconWrap}>
+                <Ionicons name="chatbubbles-outline" size={30} color={Colors.dark.primary} />
+              </View>
+              <Text style={styles.emptyTitle}>No conversations yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Start a conversation from a creator profile or booking
+              </Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -69,44 +81,56 @@ function ConversationItem({ conversation, onPress }: { conversation: any; onPres
   const timeStr = isToday
     ? time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : time.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const hasUnread = unreadCount > 0;
+  const initial = (otherUser.displayName || '?')[0].toUpperCase();
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
-        styles.conversationItem,
-        pressed && { opacity: 0.8, backgroundColor: Colors.dark.surfaceHighlight },
+        styles.item,
+        pressed && { backgroundColor: Colors.dark.surfaceHighlight },
       ]}
     >
-      <View style={[
-        styles.conversationAvatar,
-        unreadCount > 0 && { borderColor: Colors.dark.primary, borderWidth: 2 },
-      ]}>
-        <Text style={styles.conversationAvatarText}>
-          {(otherUser.displayName || '?')[0].toUpperCase()}
-        </Text>
-      </View>
+      {/* Avatar */}
+      {hasUnread ? (
+        <LinearGradient
+          colors={['#B082FF', '#7040D0']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.avatar}
+        >
+          <Text style={[styles.avatarText, { color: '#fff' }]}>{initial}</Text>
+        </LinearGradient>
+      ) : (
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{initial}</Text>
+        </View>
+      )}
 
-      <View style={styles.conversationInfo}>
-        <View style={styles.conversationTop}>
-          <Text style={[
-            styles.conversationName,
-            unreadCount > 0 && { color: Colors.dark.text },
-          ]} numberOfLines={1}>
+      {/* Content */}
+      <View style={styles.content}>
+        <View style={styles.topRow}>
+          <Text
+            style={[styles.name, hasUnread && styles.nameUnread]}
+            numberOfLines={1}
+          >
             {otherUser.displayName}
           </Text>
-          <Text style={styles.conversationTime}>{timeStr}</Text>
+          <Text style={[styles.time, hasUnread && styles.timeUnread]}>{timeStr}</Text>
         </View>
-        <View style={styles.conversationBottom}>
-          <Text style={[
-            styles.conversationMessage,
-            unreadCount > 0 && styles.conversationMessageUnread,
-          ]} numberOfLines={1}>
+        <View style={styles.bottomRow}>
+          <Text
+            style={[styles.preview, hasUnread && styles.previewUnread]}
+            numberOfLines={1}
+          >
             {lastMessage.messageText}
           </Text>
-          {unreadCount > 0 && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
+          {hasUnread && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </Text>
             </View>
           )}
         </View>
@@ -116,108 +140,85 @@ function ConversationItem({ conversation, onPress }: { conversation: any; onPres
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.dark.background,
-  },
+  container: { flex: 1, backgroundColor: Colors.dark.background },
+
+  // ── Header ──
   header: {
-    paddingHorizontal: spacing.xl,
-    marginBottom: spacing.md,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontFamily: fonts.headingBold,
-    color: Colors.dark.text,
-  },
-  listContent: {
-    paddingBottom: 100,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingTop: 60,
+    flexDirection: 'row', alignItems: 'baseline',
+    paddingHorizontal: spacing.xl, paddingBottom: spacing.lg,
     gap: spacing.sm,
   },
+  headerTitle: {
+    fontSize: 28, fontFamily: fonts.headingBold, color: Colors.dark.text,
+  },
+  headerCount: {
+    fontSize: 14, fontFamily: fonts.mono, color: Colors.dark.textMuted,
+  },
+
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  listContent: { paddingBottom: 100 },
+
+  separator: {
+    height: 1,
+    backgroundColor: Colors.dark.borderLight,
+    marginLeft: spacing.xl + 52 + spacing.md, // align under text, past avatar
+  },
+
+  // ── Empty ──
+  emptyState: { alignItems: 'center', paddingTop: 80, gap: spacing.sm },
+  emptyIconWrap: {
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: Colors.dark.primaryMuted,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
   emptyTitle: {
-    fontSize: 17,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.textSecondary,
+    fontSize: 17, fontFamily: fonts.semiBold, color: Colors.dark.text,
   },
   emptySubtitle: {
-    fontSize: 14,
-    fontFamily: fonts.regular,
-    color: Colors.dark.textMuted,
-    textAlign: 'center',
-    paddingHorizontal: spacing.xxxl,
+    fontSize: 14, fontFamily: fonts.regular, color: Colors.dark.textMuted,
+    textAlign: 'center', paddingHorizontal: spacing.xxxl,
   },
-  conversationItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
+
+  // ── Item ──
+  item: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: spacing.xl, paddingVertical: spacing.md,
     gap: spacing.md,
   },
-  conversationAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+  avatar: {
+    width: 52, height: 52, borderRadius: 26,
     backgroundColor: Colors.dark.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  conversationAvatarText: {
-    fontSize: 20,
-    fontFamily: fonts.bold,
-    color: Colors.dark.textSecondary,
+  avatarText: {
+    fontSize: 20, fontFamily: fonts.bold, color: Colors.dark.textSecondary,
   },
-  conversationInfo: {
-    flex: 1,
-    gap: 4,
+  content: { flex: 1, gap: 4 },
+  topRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  conversationTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  name: {
+    fontSize: 16, fontFamily: fonts.medium, color: Colors.dark.textSecondary,
+    flex: 1, marginRight: spacing.sm,
   },
-  conversationName: {
-    fontSize: 16,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.textSecondary,
-    flex: 1,
-    marginRight: spacing.sm,
+  nameUnread: { fontFamily: fonts.semiBold, color: Colors.dark.text },
+  time: { fontSize: 12, fontFamily: fonts.regular, color: Colors.dark.textMuted },
+  timeUnread: { color: Colors.dark.primary },
+  bottomRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  conversationTime: {
-    fontSize: 12,
-    fontFamily: fonts.regular,
-    color: Colors.dark.textMuted,
+  preview: {
+    fontSize: 14, fontFamily: fonts.regular, color: Colors.dark.textMuted,
+    flex: 1, marginRight: spacing.sm,
   },
-  conversationBottom: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  conversationMessage: {
-    fontSize: 14,
-    fontFamily: fonts.regular,
-    color: Colors.dark.textMuted,
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  conversationMessageUnread: {
-    color: Colors.dark.textSecondary,
-    fontFamily: fonts.medium,
-  },
-  unreadBadge: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
+  previewUnread: { fontFamily: fonts.medium, color: Colors.dark.textSecondary },
+  badge: {
+    minWidth: 20, height: 20, borderRadius: 10,
     backgroundColor: Colors.dark.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: 6,
   },
-  unreadBadgeText: {
-    fontSize: 11,
-    fontFamily: fonts.bold,
-    color: '#fff',
-  },
+  badgeText: { fontSize: 11, fontFamily: fonts.bold, color: '#fff' },
 });
