@@ -326,17 +326,28 @@ export default function BookingDetailScreen() {
             </View>
             {platformFee !== null && (
               <View style={styles.receiptRow}>
-                <Text style={styles.receiptLabel}>{PLATFORM_FEE_LABEL}</Text>
+                <Text style={styles.receiptLabel}>MyGrid fee (10%)</Text>
                 <Text style={[styles.receiptValue, { color: Colors.dark.textMuted }]}>
-                  −${platformFee.toFixed(2)}
+                  +${platformFee.toFixed(2)}
                 </Text>
               </View>
             )}
             <View style={styles.receiptDivider} />
-            {creatorPayout !== null && (
+            {/* Driver sees what they pay; creator sees what they receive */}
+            {isDriver && platformFee !== null && (
               <View style={styles.receiptRow}>
                 <Text style={[styles.receiptLabel, { fontFamily: fonts.semiBold, color: Colors.dark.text }]}>
-                  Creator receives
+                  You pay
+                </Text>
+                <Text style={[styles.receiptTotal, { color: Colors.dark.text }]}>
+                  ${(packagePrice! + platformFee).toFixed(2)}
+                </Text>
+              </View>
+            )}
+            {isCreator && creatorPayout !== null && (
+              <View style={styles.receiptRow}>
+                <Text style={[styles.receiptLabel, { fontFamily: fonts.semiBold, color: Colors.dark.text }]}>
+                  You receive
                 </Text>
                 <Text style={[styles.receiptTotal, { color: Colors.dark.success }]}>
                   ${creatorPayout.toFixed(2)}
@@ -347,7 +358,7 @@ export default function BookingDetailScreen() {
               <View style={styles.pendingPaymentNote}>
                 <Ionicons name="time-outline" size={13} color={Colors.dark.warning} />
                 <Text style={styles.pendingPaymentText}>
-                  Payment required after booking is accepted.
+                  {isDriver ? 'Payment required after the creator accepts.' : 'Waiting for driver payment.'}
                 </Text>
               </View>
             )}
