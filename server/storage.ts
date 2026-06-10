@@ -29,13 +29,18 @@ function getPlatformFeePercent(): number {
 }
 
 export function calcFees(grossAmount: number): {
+  driverFeeAmount: number;
+  creatorFeeAmount: number;
   platformFeeAmount: number;
   creatorPayoutAmount: number;
 } {
-  const feePercent = getPlatformFeePercent();
-  const platformFeeAmount = parseFloat(((grossAmount * feePercent) / 100).toFixed(2));
-  const creatorPayoutAmount = parseFloat((grossAmount - platformFeeAmount).toFixed(2));
-  return { platformFeeAmount, creatorPayoutAmount };
+  const totalFeePercent = getPlatformFeePercent(); // e.g. 10
+  const halfPercent = totalFeePercent / 2;          // 5% each side
+  const driverFeeAmount  = parseFloat(((grossAmount * halfPercent) / 100).toFixed(2));
+  const creatorFeeAmount = parseFloat(((grossAmount * halfPercent) / 100).toFixed(2));
+  const platformFeeAmount = parseFloat((driverFeeAmount + creatorFeeAmount).toFixed(2));
+  const creatorPayoutAmount = parseFloat((grossAmount - creatorFeeAmount).toFixed(2));
+  return { driverFeeAmount, creatorFeeAmount, platformFeeAmount, creatorPayoutAmount };
 }
 
 export const storage = {

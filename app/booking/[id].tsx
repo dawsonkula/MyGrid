@@ -13,7 +13,7 @@ import { useAuth } from '@/lib/auth-context';
 import Colors from '@/constants/colors';
 import { fonts, spacing, radius, webTopInset, webBottomInset } from '@/constants/theme';
 
-const PLATFORM_FEE_LABEL = 'MyGrid fee (10%)';
+const PLATFORM_FEE_LABEL = 'MyGrid fee (5%)';
 
 const STATUS_META: Record<string, { label: string; bg: string; color: string; icon: string; gradientColors: [string, string] }> = {
   requested:         { label: 'Pending Review', bg: Colors.dark.warningMuted, color: Colors.dark.warning, icon: 'time-outline', gradientColors: ['rgba(240,160,48,0.12)', 'rgba(240,160,48,0.04)'] },
@@ -326,9 +326,9 @@ export default function BookingDetailScreen() {
             </View>
             {platformFee !== null && (
               <View style={styles.receiptRow}>
-                <Text style={styles.receiptLabel}>MyGrid fee (10%)</Text>
+                <Text style={styles.receiptLabel}>{PLATFORM_FEE_LABEL}</Text>
                 <Text style={[styles.receiptValue, { color: Colors.dark.textMuted }]}>
-                  +${platformFee.toFixed(2)}
+                  {isDriver ? `+$${(platformFee / 2).toFixed(2)}` : `-$${(platformFee / 2).toFixed(2)}`}
                 </Text>
               </View>
             )}
@@ -340,7 +340,7 @@ export default function BookingDetailScreen() {
                   You pay
                 </Text>
                 <Text style={[styles.receiptTotal, { color: Colors.dark.text }]}>
-                  ${(packagePrice! + platformFee).toFixed(2)}
+                  ${(packagePrice! + platformFee / 2).toFixed(2)}
                 </Text>
               </View>
             )}

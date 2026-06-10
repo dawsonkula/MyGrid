@@ -284,7 +284,7 @@ export function registerStripeRoutes(app: Express) {
           });
         }
         const grossAmount = parseFloat(booking.packagePrice);
-        const { platformFeeAmount } = calcFees(grossAmount);
+        const { driverFeeAmount, platformFeeAmount } = calcFees(grossAmount);
 
         // Require transaction record (created when creator accepted)
         const tx = await storage.getTransactionByBookingId(bookingId);
@@ -308,7 +308,7 @@ export function registerStripeRoutes(app: Express) {
                   name: booking.pkg?.title || "Media Creator Booking",
                   description: `Event: ${booking.event?.name || bookingId}`,
                 },
-                unit_amount: dollarsToCents(grossAmount),
+                unit_amount: dollarsToCents(grossAmount + driverFeeAmount),
               },
               quantity: 1,
             },
