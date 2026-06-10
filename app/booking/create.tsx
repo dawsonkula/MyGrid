@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, Pressable, TextInput, StyleSheet,
   ActivityIndicator, Platform, KeyboardAvoidingView,
@@ -23,6 +23,10 @@ export default function CreateBookingScreen() {
   const [step, setStep] = useState<Step>('form');
   const [selectedEventId, setSelectedEventId] = useState(eventId || '');
   const [selectedPackageId, setSelectedPackageId] = useState(packageId || '');
+
+  // Params from modal push can arrive async — sync when they settle
+  useEffect(() => { if (eventId) setSelectedEventId(eventId); }, [eventId]);
+  useEffect(() => { if (packageId) setSelectedPackageId(packageId); }, [packageId]);
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
