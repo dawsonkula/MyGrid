@@ -62,9 +62,9 @@ export default function CreateBookingScreen() {
     if (!selectedPkg) return null;
     const gross = parseFloat(selectedPkg.price);
     if (isNaN(gross) || gross <= 0) return null;
-    const fee = parseFloat((gross * 0.10).toFixed(2));
+    const fee = parseFloat((gross * 0.05).toFixed(2));   // driver's 5%
     const total = parseFloat((gross + fee).toFixed(2));
-    const payout = parseFloat((gross - fee).toFixed(2));
+    const payout = parseFloat((gross - fee).toFixed(2)); // creator's 95%
     return { gross, fee, total, payout };
   })();
 
@@ -170,13 +170,13 @@ export default function CreateBookingScreen() {
           {/* Fee breakdown */}
           {feeCalc && (
             <View style={styles.feeCard}>
-              <Text style={styles.sectionLabel}>Pricing Breakdown</Text>
+              <Text style={styles.sectionLabel}>Booking Summary</Text>
               <View style={styles.feeRow}>
                 <Text style={styles.feeLabel}>Package price</Text>
                 <Text style={styles.feeValue}>${feeCalc.gross.toFixed(2)}</Text>
               </View>
               <View style={styles.feeRow}>
-                <Text style={styles.feeLabel}>Platform fee (10%)</Text>
+                <Text style={styles.feeLabel}>MyGrid fee (5%)</Text>
                 <Text style={[styles.feeValue, { color: Colors.dark.textMuted }]}>+${feeCalc.fee.toFixed(2)}</Text>
               </View>
               <View style={styles.feeDivider} />
@@ -321,7 +321,7 @@ export default function CreateBookingScreen() {
                 <Text style={styles.feeValue}>${feeCalc.gross.toFixed(2)}</Text>
               </View>
               <View style={styles.feeRow}>
-                <Text style={styles.feeLabel}>Platform fee (10%)</Text>
+                <Text style={styles.feeLabel}>MyGrid fee (5%)</Text>
                 <Text style={[styles.feeValue, { color: Colors.dark.textMuted }]}>+${feeCalc.fee.toFixed(2)}</Text>
               </View>
               <View style={styles.feeDivider} />
