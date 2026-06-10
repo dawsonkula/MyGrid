@@ -19,13 +19,13 @@ export default function HomeScreen() {
   const topPadding = Platform.OS === 'web' ? webTopInset : insets.top;
   const isCreator = user?.primaryRole === 'creator';
 
-  const { data: myAttendance = [], isLoading: loadingAttendance } = useQuery<any[]>({
+  const { data: myAttendance = [] } = useQuery<any[]>({
     queryKey: ['/api/attendance'],
     queryFn: getQueryFn({ on401: 'returnNull' }),
     select: (data) => data ?? [],
   });
 
-  const { data: myBookings = [], isLoading: loadingBookings } = useQuery<any[]>({
+  const { data: myBookings = [] } = useQuery<any[]>({
     queryKey: ['/api/bookings'],
     queryFn: getQueryFn({ on401: 'returnNull' }),
     select: (data) => data ?? [],
@@ -52,8 +52,6 @@ export default function HomeScreen() {
   ).slice(0, 3);
 
   const completedCount = myBookings.filter((b: any) => b.status === 'completed').length;
-
-  // Events stat: count attendance records for both roles
   const eventsCount = myAttendance.length;
 
   const greeting = (() => {
@@ -74,20 +72,20 @@ export default function HomeScreen() {
           <View style={styles.headerLeft}>
             <Text style={styles.greetingText}>{greeting}</Text>
             <Text style={styles.greetingName}>{user?.displayName || 'Racer'}</Text>
-            <View style={styles.rolePill}>
+            <View style={[styles.rolePill, isCreator && styles.rolePillCreator]}>
               <Ionicons
                 name={isCreator ? 'camera' : 'flag'}
-                size={11}
+                size={10}
                 color={isCreator ? Colors.dark.accent : Colors.dark.primary}
               />
-              <Text style={[styles.rolePillText, isCreator && { color: Colors.dark.accent }]}>
-                {isCreator ? 'Creator' : 'Driver'}
+              <Text style={[styles.rolePillText, isCreator && styles.rolePillTextCreator]}>
+                {isCreator ? 'Media Creator' : 'Driver'}
               </Text>
             </View>
           </View>
           <Pressable onPress={() => router.push('/(tabs)/profile')} style={styles.avatarWrap}>
             <LinearGradient
-              colors={[Colors.dark.primary, Colors.dark.primaryDark]}
+              colors={['#B082FF', '#7040D0']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.avatar}
@@ -105,22 +103,22 @@ export default function HomeScreen() {
           <StatCard
             value={eventsCount}
             label="Events"
-            icon="flag"
             color={Colors.dark.primary}
+            tint={Colors.dark.primaryMuted}
           />
           <View style={styles.statDivider} />
           <StatCard
             value={myBookings.length}
             label="Bookings"
-            icon="calendar"
             color={Colors.dark.accent}
+            tint={Colors.dark.accentMuted}
           />
           <View style={styles.statDivider} />
           <StatCard
             value={completedCount}
             label="Completed"
-            icon="checkmark-circle"
             color={Colors.dark.warning}
+            tint={Colors.dark.warningMuted}
           />
         </View>
 
@@ -132,8 +130,9 @@ export default function HomeScreen() {
                 <View style={styles.activeDot} />
                 <Text style={styles.sectionTitle}>Active Bookings</Text>
               </View>
-              <Pressable onPress={() => router.push('/(tabs)/bookings')}>
-                <Text style={styles.seeAll}>See all →</Text>
+              <Pressable onPress={() => router.push('/(tabs)/bookings')} style={styles.seeAllBtn}>
+                <Text style={styles.seeAll}>See all</Text>
+                <Ionicons name="chevron-forward" size={13} color={Colors.dark.primary} />
               </Pressable>
             </View>
             {activeBookings.map((booking: any) => (
@@ -152,8 +151,9 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Your Events</Text>
-              <Pressable onPress={() => router.push('/(tabs)/events')}>
-                <Text style={styles.seeAll}>See all →</Text>
+              <Pressable onPress={() => router.push('/(tabs)/events')} style={styles.seeAllBtn}>
+                <Text style={styles.seeAll}>See all</Text>
+                <Ionicons name="chevron-forward" size={13} color={Colors.dark.primary} />
               </Pressable>
             </View>
             <FlatList
@@ -179,8 +179,9 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>
               {upcomingEvents.length === 0 ? 'Find Your Next Event' : 'Discover Events'}
             </Text>
-            <Pressable onPress={() => router.push('/(tabs)/events')}>
-              <Text style={styles.seeAll}>See all →</Text>
+            <Pressable onPress={() => router.push('/(tabs)/events')} style={styles.seeAllBtn}>
+              <Text style={styles.seeAll}>See all</Text>
+              <Ionicons name="chevron-forward" size={13} color={Colors.dark.primary} />
             </Pressable>
           </View>
 
@@ -205,25 +206,25 @@ export default function HomeScreen() {
           style={({ pressed }) => [styles.ctaBanner, pressed && { opacity: 0.85 }]}
         >
           <LinearGradient
-            colors={['rgba(176,130,255,0.18)', 'rgba(94,236,192,0.10)']}
+            colors={['rgba(176,130,255,0.14)', 'rgba(94,236,192,0.07)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.ctaGradient}
           >
-            <View style={styles.ctaContent}>
-              <Ionicons name="camera-outline" size={28} color={Colors.dark.accent} />
-              <View style={styles.ctaText}>
-                <Text style={styles.ctaTitle}>
-                  {isCreator ? 'Find events near you' : 'Book your media today'}
-                </Text>
-                <Text style={styles.ctaSubtitle}>
-                  {isCreator
-                    ? 'Connect with drivers at your next race'
-                    : 'Professional creators at every event'}
-                </Text>
-              </View>
-              <Ionicons name="arrow-forward" size={18} color={Colors.dark.primary} />
+            <View style={styles.ctaIconWrap}>
+              <Ionicons name="camera-outline" size={22} color={Colors.dark.accent} />
             </View>
+            <View style={styles.ctaText}>
+              <Text style={styles.ctaTitle}>
+                {isCreator ? 'Find events near you' : 'Book your media today'}
+              </Text>
+              <Text style={styles.ctaSubtitle}>
+                {isCreator
+                  ? 'Connect with drivers at your next race'
+                  : 'Professional creators at every event'}
+              </Text>
+            </View>
+            <Ionicons name="arrow-forward" size={18} color={Colors.dark.primary} />
           </LinearGradient>
         </Pressable>
 
@@ -233,10 +234,10 @@ export default function HomeScreen() {
   );
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ── Sub-components ─────────────────────────────────────────────────────────────
 
-function StatCard({ value, label, icon, color }: {
-  value: number; label: string; icon: string; color: string;
+function StatCard({ value, label, color, tint }: {
+  value: number; label: string; color: string; tint: string;
 }) {
   return (
     <View style={styles.statCard}>
@@ -256,7 +257,7 @@ function EventCard({ event, role, onPress }: {
       style={({ pressed }) => [styles.eventCard, pressed && { opacity: 0.8 }]}
     >
       <LinearGradient
-        colors={['rgba(176,130,255,0.12)', 'rgba(94,236,192,0.06)']}
+        colors={['rgba(176,130,255,0.10)', 'rgba(94,236,192,0.05)']}
         style={styles.eventCardGradient}
       >
         <View style={styles.eventCardDate}>
@@ -291,11 +292,14 @@ function EventCard({ event, role, onPress }: {
 function DiscoverEventRow({ event, onPress }: { event: any; onPress: () => void }) {
   const date = new Date(event.dateStart);
   const daysUntil = Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const isSoon = daysUntil <= 7;
+
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.discoverRow, pressed && { opacity: 0.8 }]}
     >
+      {isSoon && <View style={styles.discoverAccent} />}
       <View style={styles.discoverDateBadge}>
         <Text style={styles.discoverDateMonth}>
           {date.toLocaleString('default', { month: 'short' }).toUpperCase()}
@@ -305,12 +309,12 @@ function DiscoverEventRow({ event, onPress }: { event: any; onPress: () => void 
       <View style={styles.discoverInfo}>
         <Text style={styles.discoverName} numberOfLines={1}>{event.name}</Text>
         <View style={styles.discoverMeta}>
-          <Ionicons name="location-outline" size={12} color={Colors.dark.textMuted} />
+          <Ionicons name="location-outline" size={11} color={Colors.dark.textMuted} />
           <Text style={styles.discoverLocation} numberOfLines={1}>{event.location}</Text>
         </View>
       </View>
       <View style={styles.discoverRight}>
-        {daysUntil <= 7 ? (
+        {isSoon ? (
           <View style={styles.soonBadge}>
             <Text style={styles.soonBadgeText}>Soon</Text>
           </View>
@@ -338,6 +342,7 @@ function ActiveBookingCard({ booking, userId, onPress }: {
       onPress={onPress}
       style={({ pressed }) => [styles.bookingRow, pressed && { opacity: 0.8 }]}
     >
+      <View style={styles.bookingAccent} />
       <View style={[styles.bookingAvatar, { borderColor: statusColor }]}>
         <Text style={styles.bookingAvatarText}>
           {(other?.displayName || '?')[0].toUpperCase()}
@@ -364,14 +369,16 @@ function ActiveBookingCard({ booking, userId, onPress }: {
 function DiscoverEmpty({ onPress }: { onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.emptyCard, pressed && { opacity: 0.8 }]}>
-      <Ionicons name="flag-outline" size={28} color={Colors.dark.textMuted} />
+      <View style={styles.emptyIconWrap}>
+        <Ionicons name="flag-outline" size={24} color={Colors.dark.primary} />
+      </View>
       <Text style={styles.emptyText}>No upcoming events yet</Text>
       <Text style={styles.emptySubtext}>Check back soon or browse all events</Text>
     </Pressable>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// ── Styles ─────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.dark.background },
@@ -386,54 +393,34 @@ const styles = StyleSheet.create({
   },
   headerLeft: { gap: 4 },
   greetingText: {
-    fontSize: 13,
-    fontFamily: fonts.regular,
-    color: Colors.dark.textMuted,
+    fontSize: 13, fontFamily: fonts.regular, color: Colors.dark.textMuted,
   },
   greetingName: {
-    fontSize: 26,
-    fontFamily: fonts.headingBold,
-    color: Colors.dark.text,
+    fontSize: 26, fontFamily: fonts.headingBold, color: Colors.dark.text,
   },
   rolePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
     alignSelf: 'flex-start',
     backgroundColor: Colors.dark.primaryMuted,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.full,
-    marginTop: 4,
+    paddingHorizontal: spacing.sm, paddingVertical: 3,
+    borderRadius: radius.full, marginTop: 4,
   },
+  rolePillCreator: { backgroundColor: Colors.dark.accentMuted },
   rolePillText: {
-    fontSize: 11,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.primary,
+    fontSize: 11, fontFamily: fonts.semiBold, color: Colors.dark.primary,
   },
+  rolePillTextCreator: { color: Colors.dark.accent },
   avatarWrap: { position: 'relative' },
   avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 46, height: 46, borderRadius: 23,
+    alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 18,
-    fontFamily: fonts.bold,
-    color: '#fff',
-  },
+  avatarText: { fontSize: 18, fontFamily: fonts.bold, color: '#fff' },
   avatarOnline: {
-    position: 'absolute',
-    bottom: 1,
-    right: 1,
-    width: 11,
-    height: 11,
-    borderRadius: 6,
+    position: 'absolute', bottom: 1, right: 1,
+    width: 11, height: 11, borderRadius: 6,
     backgroundColor: Colors.dark.accent,
-    borderWidth: 2,
-    borderColor: Colors.dark.background,
+    borderWidth: 2, borderColor: Colors.dark.background,
   },
 
   // Stats
@@ -441,296 +428,175 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: Colors.dark.surface,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderWidth: 1, borderColor: Colors.dark.border,
     marginBottom: spacing.xxl,
     paddingVertical: spacing.lg,
   },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  statValue: {
-    fontSize: 28,
-    fontFamily: fonts.condensedBold,
-  },
-  statLabel: {
-    fontSize: 11,
-    fontFamily: fonts.medium,
-    color: Colors.dark.textMuted,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: Colors.dark.border,
-    marginVertical: 4,
-  },
+  statCard: { flex: 1, alignItems: 'center', gap: 2 },
+  statValue: { fontSize: 28, fontFamily: fonts.condensedBold },
+  statLabel: { fontSize: 11, fontFamily: fonts.medium, color: Colors.dark.textMuted },
+  statDivider: { width: 1, backgroundColor: Colors.dark.border, marginVertical: 4 },
 
   // Section
   section: { marginBottom: spacing.xxl },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: spacing.md,
   },
   sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
   },
   activeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 8, height: 8, borderRadius: 4,
     backgroundColor: Colors.dark.accent,
   },
   sectionTitle: {
-    fontSize: 17,
-    fontFamily: fonts.headingBold,
-    color: Colors.dark.text,
+    fontSize: 17, fontFamily: fonts.headingBold, color: Colors.dark.text,
   },
-  seeAll: {
-    fontSize: 13,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.primary,
-  },
+  seeAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  seeAll: { fontSize: 13, fontFamily: fonts.semiBold, color: Colors.dark.primary },
 
   // Horizontal event card
   eventCard: {
-    width: 160,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    width: 160, borderRadius: radius.lg, overflow: 'hidden',
+    borderWidth: 1, borderColor: Colors.dark.border,
   },
-  eventCardGradient: {
-    padding: spacing.md,
-    gap: spacing.sm,
-    minHeight: 140,
-  },
+  eventCardGradient: { padding: spacing.md, gap: spacing.sm, minHeight: 140 },
   eventCardDate: {
     alignSelf: 'flex-start',
     backgroundColor: Colors.dark.primaryMuted,
     borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
+    paddingHorizontal: spacing.sm, paddingVertical: 2,
     alignItems: 'center',
   },
-  eventCardMonth: {
-    fontSize: 9,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.primary,
-  },
+  eventCardMonth: { fontSize: 9, fontFamily: fonts.semiBold, color: Colors.dark.primary },
   eventCardDay: {
-    fontSize: 20,
-    fontFamily: fonts.condensedBold,
-    color: Colors.dark.primary,
-    lineHeight: 22,
+    fontSize: 20, fontFamily: fonts.condensedBold,
+    color: Colors.dark.primary, lineHeight: 22,
   },
   eventCardName: {
-    fontSize: 14,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.text,
-    lineHeight: 18,
-    flex: 1,
+    fontSize: 14, fontFamily: fonts.semiBold,
+    color: Colors.dark.text, lineHeight: 18, flex: 1,
   },
-  eventCardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
+  eventCardMeta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   eventCardLocation: {
-    fontSize: 11,
-    fontFamily: fonts.regular,
-    color: Colors.dark.textMuted,
-    flex: 1,
+    fontSize: 11, fontFamily: fonts.regular, color: Colors.dark.textMuted, flex: 1,
   },
   eventCardRole: {
     alignSelf: 'flex-start',
     backgroundColor: Colors.dark.primaryMuted,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
+    paddingHorizontal: spacing.sm, paddingVertical: 2,
     borderRadius: radius.full,
   },
   eventCardRoleText: {
-    fontSize: 10,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.primary,
-    textTransform: 'capitalize',
+    fontSize: 10, fontFamily: fonts.semiBold,
+    color: Colors.dark.primary, textTransform: 'capitalize',
   },
 
   // Discover rows
   discoverRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: Colors.dark.surface,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.md,
+    borderWidth: 1, borderColor: Colors.dark.border,
+    padding: spacing.md, marginBottom: spacing.sm,
+    gap: spacing.md, overflow: 'hidden',
+  },
+  discoverAccent: {
+    position: 'absolute', left: 0, top: 0, bottom: 0,
+    width: 3, backgroundColor: Colors.dark.warning,
   },
   discoverDateBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.sm,
+    width: 44, height: 44, borderRadius: radius.sm,
     backgroundColor: Colors.dark.primaryMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  discoverDateMonth: {
-    fontSize: 9,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.primary,
-  },
+  discoverDateMonth: { fontSize: 9, fontFamily: fonts.semiBold, color: Colors.dark.primary },
   discoverDateDay: {
-    fontSize: 18,
-    fontFamily: fonts.condensedBold,
-    color: Colors.dark.primary,
-    lineHeight: 20,
+    fontSize: 18, fontFamily: fonts.condensedBold,
+    color: Colors.dark.primary, lineHeight: 20,
   },
   discoverInfo: { flex: 1, gap: 2 },
-  discoverName: {
-    fontSize: 14,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.text,
-  },
-  discoverMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
+  discoverName: { fontSize: 14, fontFamily: fonts.semiBold, color: Colors.dark.text },
+  discoverMeta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   discoverLocation: {
-    fontSize: 12,
-    fontFamily: fonts.regular,
-    color: Colors.dark.textMuted,
-    flex: 1,
+    fontSize: 12, fontFamily: fonts.regular, color: Colors.dark.textMuted, flex: 1,
   },
-  discoverRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
+  discoverRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   soonBadge: {
     backgroundColor: Colors.dark.warningMuted,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
+    paddingHorizontal: spacing.sm, paddingVertical: 2,
     borderRadius: radius.full,
   },
-  soonBadgeText: {
-    fontSize: 10,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.warning,
-  },
-  daysUntil: {
-    fontSize: 12,
-    fontFamily: fonts.mono,
-    color: Colors.dark.textMuted,
-  },
+  soonBadgeText: { fontSize: 10, fontFamily: fonts.semiBold, color: Colors.dark.warning },
+  daysUntil: { fontSize: 12, fontFamily: fonts.mono, color: Colors.dark.textMuted },
 
   // Active booking card
   bookingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: Colors.dark.surface,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.md,
+    borderWidth: 1, borderColor: Colors.dark.border,
+    padding: spacing.md, marginBottom: spacing.sm,
+    gap: spacing.md, overflow: 'hidden',
+  },
+  bookingAccent: {
+    position: 'absolute', left: 0, top: 0, bottom: 0,
+    width: 3, backgroundColor: Colors.dark.accent,
   },
   bookingAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 42, height: 42, borderRadius: 21,
     backgroundColor: Colors.dark.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
     borderWidth: 2,
   },
-  bookingAvatarText: {
-    fontSize: 16,
-    fontFamily: fonts.bold,
-    color: Colors.dark.text,
-  },
+  bookingAvatarText: { fontSize: 16, fontFamily: fonts.bold, color: Colors.dark.text },
   bookingInfo: { flex: 1, gap: 2 },
-  bookingName: {
-    fontSize: 14,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.text,
-  },
-  bookingEvent: {
-    fontSize: 12,
-    fontFamily: fonts.regular,
-    color: Colors.dark.textMuted,
-  },
+  bookingName: { fontSize: 14, fontFamily: fonts.semiBold, color: Colors.dark.text },
+  bookingEvent: { fontSize: 12, fontFamily: fonts.regular, color: Colors.dark.textMuted },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: spacing.sm, paddingVertical: 4,
     borderRadius: radius.full,
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusText: {
-    fontSize: 11,
-    fontFamily: fonts.semiBold,
-    textTransform: 'capitalize',
-  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: 11, fontFamily: fonts.semiBold, textTransform: 'capitalize' },
 
   // CTA Banner
   ctaBanner: {
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderRadius: radius.lg, overflow: 'hidden',
+    borderWidth: 1, borderColor: Colors.dark.border,
     marginBottom: spacing.md,
   },
-  ctaGradient: { padding: spacing.lg },
-  ctaContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
+  ctaGradient: {
+    flexDirection: 'row', alignItems: 'center',
+    padding: spacing.lg, gap: spacing.md,
+  },
+  ctaIconWrap: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: Colors.dark.accentMuted,
+    alignItems: 'center', justifyContent: 'center',
   },
   ctaText: { flex: 1, gap: 2 },
-  ctaTitle: {
-    fontSize: 15,
-    fontFamily: fonts.headingBold,
-    color: Colors.dark.text,
-  },
-  ctaSubtitle: {
-    fontSize: 12,
-    fontFamily: fonts.regular,
-    color: Colors.dark.textSecondary,
-  },
+  ctaTitle: { fontSize: 15, fontFamily: fonts.headingBold, color: Colors.dark.text },
+  ctaSubtitle: { fontSize: 12, fontFamily: fonts.regular, color: Colors.dark.textSecondary },
 
   // Empty
   emptyCard: {
     backgroundColor: Colors.dark.surface,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    padding: spacing.xxl,
-    alignItems: 'center',
-    gap: spacing.sm,
+    borderWidth: 1, borderColor: Colors.dark.border,
+    padding: spacing.xxl, alignItems: 'center', gap: spacing.sm,
   },
-  emptyText: {
-    fontSize: 14,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.textSecondary,
+  emptyIconWrap: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: Colors.dark.primaryMuted,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
+  emptyText: { fontSize: 14, fontFamily: fonts.semiBold, color: Colors.dark.textSecondary },
   emptySubtext: {
-    fontSize: 12,
-    fontFamily: fonts.regular,
-    color: Colors.dark.textMuted,
-    textAlign: 'center',
+    fontSize: 12, fontFamily: fonts.regular,
+    color: Colors.dark.textMuted, textAlign: 'center',
   },
 });
