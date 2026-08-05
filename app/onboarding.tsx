@@ -32,6 +32,7 @@ export default function OnboardingScreen() {
   const [selectedMediaTypes, setSelectedMediaTypes] = useState<string[]>([]);
   const [travelAvailable, setTravelAvailable] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const isCreator = user?.primaryRole === 'creator';
   const totalSteps = isCreator ? 3 : 2;
@@ -50,7 +51,6 @@ export default function OnboardingScreen() {
         youtube: youtube.trim(),
         tiktok: tiktok.trim(),
       });
-
       await apiRequest('PUT', '/api/profile', {
         bio: bio.trim(),
         carInfo: carInfo.trim(),
@@ -60,7 +60,6 @@ export default function OnboardingScreen() {
         travelAvailable,
         onboardingComplete: true,
       });
-
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
       refetchUser();
       router.replace('/(tabs)');
@@ -85,24 +84,42 @@ export default function OnboardingScreen() {
     }
   };
 
+  const stepIcons = isCreator
+    ? ['person-outline', 'camera-outline', 'share-social-outline']
+    : ['person-outline', 'share-social-outline'];
+
   return (
     <View style={[styles.container, {
       paddingTop: Math.max(insets.top, webTopInset) + spacing.lg,
       paddingBottom: Math.max(insets.bottom, webBottomInset) + spacing.lg,
     }]}>
+      {/* Ambient glow */}
+      <View style={styles.glowWrap} pointerEvents="none">
+        <LinearGradient
+          colors={['rgba(176,130,255,0.10)', 'transparent']}
+          style={styles.glow}
+        />
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
+        {/* ── Progress bar ── */}
         <View style={styles.progressBar}>
           {Array.from({ length: totalSteps }).map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.progressDot,
-                i <= step && styles.progressDotActive,
-              ]}
-            />
+            <View key={i} style={styles.progressSegmentWrap}>
+              {i <= step ? (
+                <LinearGradient
+                  colors={['#B082FF', '#7040D0']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.progressSegment}
+                />
+              ) : (
+                <View style={[styles.progressSegment, styles.progressSegmentInactive]} />
+              )}
+            </View>
           ))}
         </View>
 
@@ -111,28 +128,39 @@ export default function OnboardingScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* ── Step 0: About you ── */}
           {step === 0 && (
             <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Tell us about yourself</Text>
-              <Text style={styles.stepSubtitle}>
-                {isCreator
-                  ? 'Help drivers discover your work and style'
-                  : 'Help media creators understand your needs'}
-              </Text>
+              <View style={styles.stepHeader}>
+                <View style={styles.stepIconWrap}>
+                  <Ionicons name="person-outline" size={22} color={Colors.dark.primary} />
+                </View>
+                <Text style={styles.stepTitle}>Tell us about yourself</Text>
+                <Text style={styles.stepSubtitle}>
+                  {isCreator
+                    ? 'Help drivers discover your work and style'
+                    : 'Help media creators understand your needs'}
+                </Text>
+              </View>
 
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>Bio</Text>
                 <TextInput
-                  style={[styles.textArea]}
+                  style={[
+                    styles.textArea,
+                    focusedField === 'bio' && styles.inputFocused,
+                  ]}
                   placeholder={isCreator
                     ? 'Describe your work, style, and experience...'
-                    : 'Tell us about your racing, car, and what you\'re looking for...'}
+                    : "Tell us about your racing, car, and what you're looking for..."}
                   placeholderTextColor={Colors.dark.textMuted}
                   value={bio}
                   onChangeText={setBio}
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
+                  onFocus={() => setFocusedField('bio')}
+                  onBlur={() => setFocusedField(null)}
                 />
               </View>
 
@@ -140,11 +168,16 @@ export default function OnboardingScreen() {
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Car Info</Text>
                   <TextInput
-                    style={styles.inputField}
+                    style={[
+                      styles.inputField,
+                      focusedField === 'car' && styles.inputFocused,
+                    ]}
                     placeholder="e.g., 2023 Porsche 911 GT3 RS"
                     placeholderTextColor={Colors.dark.textMuted}
                     value={carInfo}
                     onChangeText={setCarInfo}
+                    onFocus={() => setFocusedField('car')}
+                    onBlur={() => setFocusedField(null)}
                   />
                 </View>
               )}
@@ -152,73 +185,98 @@ export default function OnboardingScreen() {
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>Location</Text>
                 <TextInput
-                  style={styles.inputField}
+                  style={[
+                    styles.inputField,
+                    focusedField === 'location' && styles.inputFocused,
+                  ]}
                   placeholder="e.g., Austin, TX"
                   placeholderTextColor={Colors.dark.textMuted}
                   value={location}
                   onChangeText={setLocation}
+                  onFocus={() => setFocusedField('location')}
+                  onBlur={() => setFocusedField(null)}
                 />
               </View>
             </View>
           )}
 
+          {/* ── Step 1 (creator): Specialty ── */}
           {step === 1 && isCreator && (
             <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Your Specialty</Text>
-              <Text style={styles.stepSubtitle}>Select your media types</Text>
+              <View style={styles.stepHeader}>
+                <View style={styles.stepIconWrap}>
+                  <Ionicons name="camera-outline" size={22} color={Colors.dark.primary} />
+                </View>
+                <Text style={styles.stepTitle}>Your Specialty</Text>
+                <Text style={styles.stepSubtitle}>Select all that apply</Text>
+              </View>
 
               <View style={styles.mediaTypeGrid}>
-                {MEDIA_TYPE_OPTIONS.map(opt => (
-                  <Pressable
-                    key={opt.value}
-                    onPress={() => toggleMediaType(opt.value)}
-                    style={[
-                      styles.mediaTypeCard,
-                      selectedMediaTypes.includes(opt.value) && styles.mediaTypeSelected,
-                    ]}
-                  >
-                    <Ionicons
-                      name={opt.icon as any}
-                      size={28}
-                      color={selectedMediaTypes.includes(opt.value) ? Colors.dark.primary : Colors.dark.textMuted}
-                    />
-                    <Text style={[
-                      styles.mediaTypeLabel,
-                      selectedMediaTypes.includes(opt.value) && styles.mediaTypeLabelSelected,
-                    ]}>{opt.label}</Text>
-                  </Pressable>
-                ))}
+                {MEDIA_TYPE_OPTIONS.map(opt => {
+                  const selected = selectedMediaTypes.includes(opt.value);
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => toggleMediaType(opt.value)}
+                      style={[styles.mediaTypeCard, selected && styles.mediaTypeSelected]}
+                    >
+                      {selected && (
+                        <LinearGradient
+                          colors={['rgba(176,130,255,0.15)', 'rgba(112,64,208,0.10)']}
+                          style={StyleSheet.absoluteFill}
+                        />
+                      )}
+                      <Ionicons
+                        name={opt.icon as any}
+                        size={26}
+                        color={selected ? Colors.dark.primary : Colors.dark.textMuted}
+                      />
+                      <Text style={[styles.mediaTypeLabel, selected && styles.mediaTypeLabelSelected]}>
+                        {opt.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
 
               <Pressable
                 onPress={() => setTravelAvailable(!travelAvailable)}
-                style={styles.toggleRow}
+                style={[styles.toggleRow, travelAvailable && styles.toggleRowActive]}
               >
                 <View style={styles.toggleInfo}>
-                  <Ionicons name="airplane-outline" size={20} color={Colors.dark.textSecondary} />
-                  <Text style={styles.toggleLabel}>Available to travel</Text>
+                  <Ionicons
+                    name="airplane-outline"
+                    size={20}
+                    color={travelAvailable ? Colors.dark.primary : Colors.dark.textSecondary}
+                  />
+                  <Text style={[styles.toggleLabel, travelAvailable && styles.toggleLabelActive]}>
+                    Available to travel
+                  </Text>
                 </View>
-                <View style={[
-                  styles.toggle,
-                  travelAvailable && styles.toggleActive,
-                ]}>
-                  <View style={[
-                    styles.toggleThumb,
-                    travelAvailable && styles.toggleThumbActive,
-                  ]} />
+                <View style={[styles.toggle, travelAvailable && styles.toggleActive]}>
+                  <View style={[styles.toggleThumb, travelAvailable && styles.toggleThumbActive]} />
                 </View>
               </Pressable>
             </View>
           )}
 
+          {/* ── Social links step ── */}
           {((step === 1 && !isCreator) || (step === 2 && isCreator)) && (
             <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Social Links</Text>
-              <Text style={styles.stepSubtitle}>Connect your social profiles (optional)</Text>
+              <View style={styles.stepHeader}>
+                <View style={styles.stepIconWrap}>
+                  <Ionicons name="share-social-outline" size={22} color={Colors.dark.primary} />
+                </View>
+                <Text style={styles.stepTitle}>Social Links</Text>
+                <Text style={styles.stepSubtitle}>Connect your profiles (optional)</Text>
+              </View>
 
               <View style={styles.fieldGroup}>
-                <View style={styles.socialInputRow}>
-                  <Ionicons name="logo-instagram" size={22} color="#E1306C" />
+                <View style={[
+                  styles.socialInputRow,
+                  focusedField === 'instagram' && styles.inputFocused,
+                ]}>
+                  <Ionicons name="logo-instagram" size={20} color="#E1306C" />
                   <TextInput
                     style={styles.socialInput}
                     placeholder="Instagram username"
@@ -226,13 +284,18 @@ export default function OnboardingScreen() {
                     value={instagram}
                     onChangeText={setInstagram}
                     autoCapitalize="none"
+                    onFocus={() => setFocusedField('instagram')}
+                    onBlur={() => setFocusedField(null)}
                   />
                 </View>
               </View>
 
               <View style={styles.fieldGroup}>
-                <View style={styles.socialInputRow}>
-                  <Ionicons name="logo-youtube" size={22} color="#FF0000" />
+                <View style={[
+                  styles.socialInputRow,
+                  focusedField === 'youtube' && styles.inputFocused,
+                ]}>
+                  <Ionicons name="logo-youtube" size={20} color="#FF0000" />
                   <TextInput
                     style={styles.socialInput}
                     placeholder="YouTube channel"
@@ -240,13 +303,18 @@ export default function OnboardingScreen() {
                     value={youtube}
                     onChangeText={setYoutube}
                     autoCapitalize="none"
+                    onFocus={() => setFocusedField('youtube')}
+                    onBlur={() => setFocusedField(null)}
                   />
                 </View>
               </View>
 
               <View style={styles.fieldGroup}>
-                <View style={styles.socialInputRow}>
-                  <Ionicons name="logo-tiktok" size={22} color={Colors.dark.text} />
+                <View style={[
+                  styles.socialInputRow,
+                  focusedField === 'tiktok' && styles.inputFocused,
+                ]}>
+                  <Ionicons name="logo-tiktok" size={20} color={Colors.dark.text} />
                   <TextInput
                     style={styles.socialInput}
                     placeholder="TikTok username"
@@ -254,6 +322,8 @@ export default function OnboardingScreen() {
                     value={tiktok}
                     onChangeText={setTiktok}
                     autoCapitalize="none"
+                    onFocus={() => setFocusedField('tiktok')}
+                    onBlur={() => setFocusedField(null)}
                   />
                 </View>
               </View>
@@ -261,6 +331,7 @@ export default function OnboardingScreen() {
           )}
         </ScrollView>
 
+        {/* ── Bottom actions ── */}
         <View style={styles.bottomActions}>
           {step > 0 && (
             <Pressable onPress={() => setStep(step - 1)} style={styles.backButton}>
@@ -273,12 +344,14 @@ export default function OnboardingScreen() {
             style={({ pressed }) => [
               styles.nextButton,
               { flex: step > 0 ? 1 : undefined },
-              pressed && { opacity: 0.9 },
-              (!canProceed() || loading) && { opacity: 0.5 },
+              pressed && { opacity: 0.88, transform: [{ scale: 0.98 }] },
+              (!canProceed() || loading) && { opacity: 0.45 },
             ]}
           >
             <LinearGradient
-              colors={[Colors.dark.primary, Colors.dark.primaryDark]}
+              colors={['#B082FF', '#7040D0']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.nextGradient}
             >
               {loading ? (
@@ -298,188 +371,127 @@ export default function OnboardingScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: Colors.dark.background,
+    flex: 1, backgroundColor: Colors.dark.background,
     paddingHorizontal: spacing.xxl,
   },
-  progressBar: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.xxl,
-  },
-  progressDot: {
-    flex: 1,
-    height: 3,
-    backgroundColor: Colors.dark.border,
-    borderRadius: 2,
-  },
-  progressDotActive: {
-    backgroundColor: Colors.dark.primary,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  stepContent: {
-    gap: spacing.xl,
+
+  glowWrap: { position: 'absolute', top: 0, left: 0, right: 0, height: 260 },
+  glow: { flex: 1 },
+
+  // Progress
+  progressBar: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xxl },
+  progressSegmentWrap: { flex: 1 },
+  progressSegment: { height: 3, borderRadius: 2 },
+  progressSegmentInactive: { backgroundColor: Colors.dark.border },
+
+  scrollContent: { flexGrow: 1 },
+
+  // Step
+  stepContent: { gap: spacing.xl },
+  stepHeader: { gap: spacing.xs },
+  stepIconWrap: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: Colors.dark.primaryMuted,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
   stepTitle: {
-    fontSize: 26,
-    fontFamily: fonts.headingBold,
-    color: Colors.dark.text,
+    fontSize: 26, fontFamily: fonts.headingBold, color: Colors.dark.text,
   },
   stepSubtitle: {
-    fontSize: 15,
-    fontFamily: fonts.regular,
-    color: Colors.dark.textSecondary,
-    marginTop: -spacing.md,
+    fontSize: 15, fontFamily: fonts.regular, color: Colors.dark.textSecondary,
   },
-  fieldGroup: {
-    gap: spacing.sm,
-  },
+
+  // Fields
+  fieldGroup: { gap: spacing.sm },
   label: {
-    fontSize: 13,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.textSecondary,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.5,
+    fontSize: 11, fontFamily: fonts.semiBold,
+    color: Colors.dark.textMuted,
+    textTransform: 'uppercase', letterSpacing: 0.8,
   },
   inputField: {
     backgroundColor: Colors.dark.inputBackground,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: Colors.dark.inputBorder,
+    borderWidth: 1, borderColor: Colors.dark.inputBorder,
     paddingHorizontal: spacing.lg,
-    height: 48,
-    fontSize: 15,
-    fontFamily: fonts.regular,
-    color: Colors.dark.text,
+    height: 50,
+    fontSize: 15, fontFamily: fonts.regular, color: Colors.dark.text,
   },
   textArea: {
     backgroundColor: Colors.dark.inputBackground,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: Colors.dark.inputBorder,
+    borderWidth: 1, borderColor: Colors.dark.inputBorder,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
+    paddingTop: spacing.md, paddingBottom: spacing.md,
     minHeight: 100,
-    fontSize: 15,
-    fontFamily: fonts.regular,
-    color: Colors.dark.text,
+    fontSize: 15, fontFamily: fonts.regular, color: Colors.dark.text,
   },
-  mediaTypeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-  },
-  mediaTypeCard: {
-    width: '47%',
-    height: 88,
-    backgroundColor: Colors.dark.surface,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.dark.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  mediaTypeSelected: {
+  inputFocused: {
     borderColor: Colors.dark.primary,
-    backgroundColor: Colors.dark.primaryMuted,
+    shadowColor: Colors.dark.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  mediaTypeLabel: {
-    fontSize: 13,
-    fontFamily: fonts.semiBold,
-    color: Colors.dark.textMuted,
-  },
-  mediaTypeLabelSelected: {
-    color: Colors.dark.primary,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+
+  // Media types
+  mediaTypeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  mediaTypeCard: {
+    width: '47%', height: 84,
     backgroundColor: Colors.dark.surface,
     borderRadius: radius.md,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
+    borderWidth: 1.5, borderColor: Colors.dark.border,
+    alignItems: 'center', justifyContent: 'center',
+    gap: spacing.sm, overflow: 'hidden',
   },
-  toggleInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+  mediaTypeSelected: { borderColor: Colors.dark.primary },
+  mediaTypeLabel: { fontSize: 13, fontFamily: fonts.semiBold, color: Colors.dark.textMuted },
+  mediaTypeLabelSelected: { color: Colors.dark.primary },
+
+  // Toggle
+  toggleRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: Colors.dark.surface,
+    borderRadius: radius.md, padding: spacing.lg,
+    borderWidth: 1, borderColor: Colors.dark.border,
   },
-  toggleLabel: {
-    fontSize: 15,
-    fontFamily: fonts.medium,
-    color: Colors.dark.text,
-  },
+  toggleRowActive: { borderColor: Colors.dark.primary },
+  toggleInfo: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  toggleLabel: { fontSize: 15, fontFamily: fonts.medium, color: Colors.dark.text },
+  toggleLabelActive: { color: Colors.dark.primary },
   toggle: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
+    width: 48, height: 28, borderRadius: 14,
     backgroundColor: Colors.dark.border,
-    justifyContent: 'center',
-    paddingHorizontal: 2,
+    justifyContent: 'center', paddingHorizontal: 2,
   },
-  toggleActive: {
-    backgroundColor: Colors.dark.primary,
-  },
+  toggleActive: { backgroundColor: Colors.dark.primary },
   toggleThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#fff',
+    width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff',
   },
-  toggleThumbActive: {
-    alignSelf: 'flex-end',
-  },
+  toggleThumbActive: { alignSelf: 'flex-end' },
+
+  // Social
   socialInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: Colors.dark.inputBackground,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: Colors.dark.inputBorder,
-    paddingHorizontal: spacing.lg,
-    height: 48,
+    borderWidth: 1, borderColor: Colors.dark.inputBorder,
+    paddingHorizontal: spacing.lg, height: 50,
     gap: spacing.sm,
   },
   socialInput: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: fonts.regular,
-    color: Colors.dark.text,
+    flex: 1, fontSize: 15, fontFamily: fonts.regular, color: Colors.dark.text,
   },
-  bottomActions: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    paddingTop: spacing.lg,
-  },
+
+  // Bottom
+  bottomActions: { flexDirection: 'row', gap: spacing.md, paddingTop: spacing.lg },
   backButton: {
-    width: 48,
-    height: 52,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 52, height: 52, borderRadius: radius.md,
+    borderWidth: 1, borderColor: Colors.dark.border,
+    alignItems: 'center', justifyContent: 'center',
   },
-  nextButton: {
-    flex: 1,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-  },
-  nextGradient: {
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.md,
-  },
-  nextText: {
-    fontSize: 16,
-    fontFamily: fonts.semiBold,
-    color: '#fff',
-  },
+  nextButton: { flex: 1, borderRadius: radius.md, overflow: 'hidden' },
+  nextGradient: { height: 52, alignItems: 'center', justifyContent: 'center' },
+  nextText: { fontSize: 16, fontFamily: fonts.semiBold, color: '#fff' },
 });
